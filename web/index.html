@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>The Oblong Table</title>
+<link rel="stylesheet" href="./src/ui/style.css" />
+</head>
+<body>
+<canvas id="stage"></canvas>
+
+<div id="loading"><span>Setting the table</span></div>
+
+<div id="ui" hidden>
+  <header id="masthead">
+    <h1>The Oblong Table</h1>
+    <p>AI in Education &middot; University of Chicago</p>
+  </header>
+
+  <div id="passage" class="fragment" aria-live="polite"></div>
+
+  <div id="hint" class="hint"></div>
+
+  <div id="gestures" hidden>
+    <p class="held">You are holding <em id="held-name">an object</em>.</p>
+    <div class="choices">
+      <button data-gesture="0"><b>Mold it</b><span>to your teaching agenda</span></button>
+      <button data-gesture="1"><b>Place it</b><span>by a precise methodology</span></button>
+      <button data-gesture="2"><b>Set it aside</b><span>deliberately, after exploring</span></button>
+    </div>
+    <button id="return" class="minor">Put it back down</button>
+  </div>
+
+  <footer id="controls">
+    <button id="view">Take your seat</button>
+    <button id="legend-btn">Legend</button>
+    <button id="read">Read the passage</button>
+  </footer>
+
+  <div id="legend" hidden>
+    <h2>The table records three gestures</h2>
+    <ul>
+      <li><i class="sw mold"></i><b>Mold</b> — a broad rise</li>
+      <li><i class="sw method"></i><b>Place</b> — a precise terrace</li>
+      <li><i class="sw aside"></i><b>Set aside</b> — a dimple and a ring</li>
+    </ul>
+    <p>None outranks another. The surface keeps shifting on its own.</p>
+    <button class="close" data-close="legend">Close</button>
+  </div>
+
+  <div id="reader" hidden>
+    <div class="sheet">
+      <blockquote id="reader-text"></blockquote>
+      <p class="cite" id="reader-cite"></p>
+      <button class="close" data-close="reader">Close</button>
+    </div>
+  </div>
+</div>
+
+<script type="module" src="./src/main.js"></script>
+</body>
+</html>
