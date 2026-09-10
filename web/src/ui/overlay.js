@@ -4,6 +4,7 @@
  * The three gesture buttons are laid out identically on purpose. Nothing in
  * this file should give one of them more prominence than the others.
  */
+import { GESTURE_COLOR } from '../config.js'
 import { CITATION, FULL_TEXT } from './passage.js'
 
 export class Overlay {
@@ -18,6 +19,15 @@ export class Overlay {
 
     document.getElementById('reader-text').textContent = FULL_TEXT
     document.getElementById('reader-cite').textContent = CITATION
+
+    // One source of truth for the three colours: the swatches in the legend
+    // and the accents on the gesture buttons are driven from config, so the
+    // stylesheet can never drift out of step with what the scene uses.
+    const css = ['--mold', '--method', '--aside']
+    GESTURE_COLOR.forEach((hex, i) => {
+      document.documentElement.style.setProperty(
+        css[i], '#' + hex.toString(16).padStart(6, '0'))
+    })
 
     for (const btn of this.gestures.querySelectorAll('[data-gesture]')) {
       btn.addEventListener('click', () => {

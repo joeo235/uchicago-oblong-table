@@ -22,6 +22,7 @@ export const FRAGMENTS = {
   student: 'The topography shifts as we learn more from each other, from teaching, and, importantly, <em>from our students</em>.',
   drift: 'Notably, that topography is <em>not fixed, but it shifts</em>.',
   emerge: 'An <em>uneven but dynamic table topography</em> emerges, as we continually test, manipulate, and move these objects.',
+  moved: 'We continually <em>test, manipulate, and move these objects</em>.',
   anticipate: 'They will likely matter <em>in ways we do not yet anticipate</em>.',
 }
 

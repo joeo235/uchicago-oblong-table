@@ -54,6 +54,34 @@ def brass():
     return _principled("Brass", P.BRASS, metallic=0.9, roughness=0.34)
 
 
+def window_glass():
+    """Leaded glazing, seen from outside on a bright day.
+
+    Matte and very dark on purpose. Physically accurate glass at low roughness
+    mirrors the sky, which at this distance makes every window exactly as
+    bright as the limestone around it and the facade reads as a blank slab.
+    A dark interior is both truthful and legible.
+    """
+    return _principled("WindowGlass", (0.018, 0.022, 0.028),
+                       metallic=0.0, roughness=0.42)
+
+
+def lawn():
+    return _principled("Lawn", P.LAWN, roughness=0.95)
+
+
+def path_stone():
+    return _principled("PathStone", P.PATH_STONE, roughness=0.88)
+
+
+def bark():
+    return _principled("Bark", P.BARK, roughness=0.92)
+
+
+def leaf():
+    return _principled("Leaf", P.LEAF, roughness=0.86)
+
+
 def ai_object(index):
     """One emissive material per archetype.
 
@@ -62,11 +90,12 @@ def ai_object(index):
     """
     tint = P.OBJECT_TINTS[index]
     name = "AIObject_%02d" % index
-    # Kept dark and low-emission on purpose. glTF normalises an emissive colour
-    # and pushes the excess into KHR_materials_emissive_strength, so a bright
-    # tint here comes back out of the exporter washed toward white.
+    # In daylight the base colour does the work, so these are simply their own
+    # colour. A trace of emission keeps them looking active rather than inert,
+    # but anything more washes out: glTF normalises an emissive colour and
+    # pushes the excess into KHR_materials_emissive_strength, so a bright tint
+    # comes back out of the exporter close to white.
     return _principled(
-        name, tuple(c * 0.10 for c in tint),
-        metallic=0.20, roughness=0.30,
-        emission=tint, emission_strength=0.42,
+        name, tint, metallic=0.05, roughness=0.42,
+        emission=tint, emission_strength=0.10,
     )

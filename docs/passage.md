@@ -44,28 +44,50 @@ The passage names three responses to an AI object, and pointedly refuses to rank
 3. Handle it, explore it, and **deliberately set it aside**
 
 An interactive piece naturally rewards action, so the build has to work against its own grain
-here. Each gesture gets equal visual weight and equal representation in the seeded data. Setting
-an object aside leaves a *considered mark* — a dimple and a ring — not an absence. There is no
-score, no progress bar, and no completion state.
+here. Each gesture gets equal visual weight and equal representation in the seeded data. An
+object set aside is not deleted — it stays on the table, out at the rim, tipped and quiet, where
+you can still see what somebody decided about. There is no score, no progress bar, and no
+completion state.
+
+## The topography is the objects, not the table
+
+"Over the course of our gathering, an uneven but dynamic table topography
+emerges, **as we continually test, manipulate, and move these objects.**"
+
+The topography is what the objects make. A real table does not change shape,
+and neither does this one — the table is a flat oak slab throughout. What rises
+and falls is the arrangement standing on it. An earlier version of this project
+had the table surface itself deforming into swells and terraces; that was a
+misreading, and it has been removed.
+
+So height is not a stored field. It is a consequence of what is standing where:
+
+| Gesture | What happens to the object | What it does to the landscape |
+|---|---|---|
+| Mold | grown, reworked, tilted | piles onto whatever is already worked into that spot — a mound |
+| Place | squared up, snapped to a grid | a flat plateau of order |
+| Set aside | tipped, quietened, moved to the rim | a fringe around the edge, still on the table |
 
 ## Unevenness is the goal
 
-"An uneven but dynamic table topography." The drift pass that keeps the surface moving must
-preserve variance rather than relaxing toward flat. A table trending to smooth would be the
-piece arguing for consensus, which the passage never does.
+"An uneven but dynamic table topography." Nothing should tidy the arrangement
+toward uniformity. A table trending to evenness would be the piece arguing for
+consensus, which the passage never does.
 
 ## No figures
 
-Faculty and students are presences — light, warmth, motion — never modeled people. Bodies would
-imply identity and land in the uncanny valley.
+Faculty and students are presences — a notebook at each place, warming when
+someone speaks. Bodies would imply identity and land in the uncanny valley.
 
-## Terrain grammars
+## The objects are uses, not products
 
-Each gesture stamps a visually distinct signature into the heightfield, so the table read from
-above becomes a legible record of collective judgment:
+The objects are shaped like things a teacher reaches for: a quiz, a grading
+rubric, a tutoring dialogue, a summariser, a translator, a coding assistant, an
+image generator, a literature search, a data analysis, a set of margin
+comments.
 
-| Gesture | Kernel | Reads as |
-|---|---|---|
-| Mold | wide smooth Gaussian swell, warm | a broad rise |
-| Place | quantized plateau with a hard rim | a terrace |
-| Set aside | shallow negative dimple + bright ring | a marked absence |
+They are deliberately not vendor logos. Third-party marks would carry trademark
+problems, read as endorsement, and date the piece the moment the market moved.
+The passage is also careful to keep the objects generic — "objects that
+represent AI" — while being quite specific about pedagogy, so pedagogy is what
+they are shaped like.

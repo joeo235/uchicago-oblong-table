@@ -6,26 +6,27 @@
  */
 import { STORAGE_KEY } from '../config.js'
 
-const VERSION = 1
-const MAX_MARKS = 400
+const VERSION = 2
+const MAX = 300
 
 export function loadHistory() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (!raw) return []
     const data = JSON.parse(raw)
-    if (data?.version !== VERSION || !Array.isArray(data.marks)) return []
-    return data.marks.filter(valid).slice(-MAX_MARKS)
+    if (data?.version !== VERSION || !Array.isArray(data.actions)) return []
+    return data.actions.filter(valid).slice(-MAX)
   } catch {
     return []                       // private browsing, quota, corrupt value
   }
 }
 
-export function saveHistory(marks) {
+export function saveHistory(actions) {
   try {
-    const trimmed = marks.filter(valid).slice(-MAX_MARKS).map(compact)
-    localStorage.setItem(STORAGE_KEY,
-      JSON.stringify({ version: VERSION, marks: trimmed }))
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      version: VERSION,
+      actions: actions.filter(valid).slice(-MAX).map(compact),
+    }))
     return true
   } catch {
     return false
@@ -36,16 +37,13 @@ export function clearHistory() {
   try { localStorage.removeItem(STORAGE_KEY); return true } catch { return false }
 }
 
-function valid(m) {
-  return m && Number.isFinite(m.x) && Number.isFinite(m.z)
-    && Number.isFinite(m.radius) && Number.isFinite(m.amp)
-    && Number.isInteger(m.grammar) && m.grammar >= 0 && m.grammar <= 2
+function valid(a) {
+  return a && Number.isInteger(a.objectIndex) && a.objectIndex >= 0
+    && Number.isInteger(a.gesture) && a.gesture >= 0 && a.gesture <= 2
+    && Number.isFinite(a.x) && Number.isFinite(a.z)
 }
 
-function compact(m) {
+function compact(a) {
   const r = (n) => Math.round(n * 1e3) / 1e3
-  return {
-    x: r(m.x), z: r(m.z), grammar: m.grammar,
-    radius: r(m.radius), amp: r(m.amp), seed: r(m.seed ?? 0),
-  }
+  return { objectIndex: a.objectIndex, gesture: a.gesture, x: r(a.x), z: r(a.z) }
 }

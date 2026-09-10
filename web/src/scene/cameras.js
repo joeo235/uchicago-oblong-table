@@ -17,7 +17,7 @@ const TRANSITION = 1.35   // seconds
 export class Cameras {
   constructor(canvas) {
     this.camera = new THREE.PerspectiveCamera(
-      42, canvas.clientWidth / Math.max(1, canvas.clientHeight), 0.1, 400)
+      42, canvas.clientWidth / Math.max(1, canvas.clientHeight), 0.1, 4000)
     this.camera.position.set(0, 10.0, 10.0)
 
     this.controls = new OrbitControls(this.camera, canvas)

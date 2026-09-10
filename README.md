@@ -47,27 +47,36 @@ Requires Blender 5.x. Writes to `web/public/models/`.
 ## What it does
 
 **Three gestures.** The passage names three responses to an AI object and
-pointedly refuses to rank them. Each stamps a visually distinct signature into
-the table's surface, so the table read from above becomes a legible record of
-collective judgment:
+pointedly refuses to rank them. Each leaves the arrangement on the table
+different, so the table read from above becomes a legible record of collective
+judgment:
 
-| Gesture | Terrain | Reads as |
+| Gesture | What happens to the object | The landscape |
 |---|---|---|
-| **Mold** it to your teaching agenda | broad smooth swell | a rise |
-| **Place** it by a precise methodology | quantised plateau, hard rim | a terrace |
-| **Set it aside**, deliberately | dimple ringed by a raised lip | a considered absence |
+| **Mold** it to your teaching agenda | grown, reworked, tilted | piles onto what is already worked there — a mound |
+| **Place** it by a precise methodology | squared up, snapped to a grid | a plateau of order |
+| **Set it aside**, deliberately | tipped and quietened, moved to the rim | a fringe around the edge — still on the table |
 
-**A gathering already in progress.** You arrive at a table carrying 60 seeded
-gestures split evenly across the three. Colleagues keep acting on their own,
-and strands of conversation run between seats whether or not you do anything.
+**The topography is the objects.** The table itself is a plain flat slab and
+never changes shape. Height is not a stored field: it is a consequence of what
+is standing where, which is what the passage actually describes — a topography
+that emerges "as we continually test, manipulate, and move these objects."
 
-**Students.** The passage's closing clause gets its own beat. Periodically a
-cool pulse arrives from beyond the ring of seats and shifts a whole region of
-the table in a way no one seated put there — wide, shallow and rippled, unlike
-any faculty mark.
+**A gathering already in progress.** You arrive at a table of 48 objects
+carrying 36 prior gestures, split exactly evenly across the three. Colleagues
+keep deciding about things on their own, and strands of conversation run
+between seats whether or not you do anything.
 
-**It keeps moving.** With nobody touching it the surface drifts continuously.
-Over ten simulated minutes it retains its unevenness and does not sink.
+**Students.** The passage's closing clause gets its own beat. Faculty at this
+table decide about objects one at a time; periodically a cool pulse crosses the
+lawn from beyond the ring of seats and moves a whole neighbourhood of the
+arrangement at once — a shift nobody seated chose.
+
+**The objects are uses, not products.** A quiz, a grading rubric, a tutoring
+dialogue, a summariser, a translator, a coding assistant, an image generator, a
+literature search, a data analysis, a set of margin comments. Deliberately not
+vendor logos: third-party marks would carry trademark problems, read as
+endorsement, and date the piece the moment the market moved.
 
 ---
 
@@ -77,12 +86,15 @@ The hard problem here was editorial, not technical. Interactive pieces reward
 action, and this passage declines to. Three rules the code is written to keep:
 
 1. **The three gestures are peers.** Equal visual weight, equal effort, equal
-   share of the seeded history and of what colleagues choose. Setting an object
-   aside leaves a mark, not a blank. There is no score and no completion state.
-2. **Unevenness is the goal.** The drift must never trend the table toward
-   smooth. A table relaxing to flat would be the piece arguing for consensus.
-3. **No figures.** Faculty and students are presences — light, warmth, motion.
-   Modelled bodies would imply identity and land in the uncanny valley.
+   share of the seeded history and of what colleagues choose. An object set
+   aside is not deleted — it stays on the table where you can see it. There is
+   no score and no completion state.
+2. **Unevenness is the goal.** Nothing should tidy the arrangement toward
+   uniformity. A table trending to even would be the piece arguing for
+   consensus.
+3. **No figures.** Faculty and students are presences — a notebook at each
+   place, warming when someone speaks. Modelled bodies would imply identity and
+   land in the uncanny valley.
 
 ---
 
@@ -90,44 +102,36 @@ action, and this passage declines to. Three rules the code is written to keep:
 
 ```
 blender/          headless, scripted, reproducible asset build -> .glb
-  build_table.py    oblong trestle table + one chair (instanced at runtime)
-  build_quad.py     stylised gothic massing, four ranges, lit windows
-  build_objects.py  nine AI object archetypes
+  build_table.py    oblong trestle table (flat top) + one chair
+  build_quad.py     four Gothic ranges, lawn, paths, three tree variants
+  build_objects.py  ten AI objects, each shaped like a pedagogical use
 web/src/
-  table/topography.js   the heightfield: ping-pong render target, the core
-  table/tableMesh.js    displaced surface patched into MeshStandardMaterial
+  objects/aiObjects.js  the arrangement, and the topography it makes
   objects/gestures.js   the three commit paths
-  seats/                presences, conversation filaments, the student beat
+  scene/                daylight sky, sun, glTF loading, instanced trees
+  seats/                notebooks, conversation filaments, the student beat
   state/                seeded gathering, localStorage history
 ```
 
-### The topography
+### Two things worth recording
 
-The table's relief is not geometry. It is a **live heightfield in a ping-pong
-render target** (1024×224), so it can accumulate and then keep evolving:
+Both took measurement rather than reasoning to pin down, and both would be
+easy to reintroduce:
 
-- `R` height · `G` grammar · `B` age · `A` crispness
-- a **stamp pass** applies gestures, batched eight per pass
-- a **drift pass** erodes fine detail and adds a slow wander every frame
-- the surface mesh patches `MeshStandardMaterial` via `onBeforeCompile`, so the
-  relief keeps real PBR lighting and shadows; a matching depth material gives it
-  self-shadowing rather than casting as a flat slab
+- **Gothic detail has to be applied relief, not recessed.** The lancets were
+  first modelled set *back* from the facade plane, which is what a real window
+  is — but nothing was booleaned out of the masonry, so every window was simply
+  buried inside the wall. They are now built strictly outward: hood mould
+  (widest, shallowest), then surround, then glazing (narrowest, proudest). Get
+  that ordering wrong and a larger layer silently hides a smaller one.
+- **The sun's elevation is a design parameter, not a mood setting.** At 30
+  degrees the ranges cast shadows about 41 units long, which across an 88-unit
+  Quad reaches the middle and leaves the table in gloom all afternoon. At ~51
+  degrees they cast about 19 and the table stands in full sun.
 
-Two findings worth recording, both of which took measurement rather than
-reasoning to pin down:
-
-- **The targets must be fp32, not half float.** The field is integrated in place
-  across thousands of frames. At half precision the per-frame increments fall
-  below the ULP of the value they are added to, round away, and the table
-  quietly decays to flat — 7% of its variance left after ten simulated minutes,
-  versus ~100% at fp32. It falls back to half float where fp32 is not
-  renderable, at the cost of long-session stability.
-- **Drift must add the wander field's *difference*, not the field.** Adding the
-  field is a random walk: the whole table creeps until it pins against the
-  clamp. The difference telescopes, so the surface wanders inside a bounded
-  envelope however long it is left running.
-
----
+A third, smaller: window glass at low roughness mirrors the bright sky and
+comes out exactly as bright as the limestone around it, so the facade reads as
+a blank slab. The glazing is deliberately matte and very dark.
 
 ## Verify it
 
@@ -137,20 +141,24 @@ Blender build is idempotent and reports its own geometry:
 /Applications/Blender.app/Contents/MacOS/Blender -b --python blender/build_all.py
 ```
 
-In the browser console, `window.__oblong` exposes the whole runtime. The
-long-run drift behaviour — the property most likely to regress — can be checked
-by driving the simulation forward without waiting for it:
+In the browser console, `window.__oblong` exposes the whole runtime:
 
 ```js
-const { topography } = window.__oblong
-for (let i = 0; i < 12000; i++) topography.update(0.05)   // 10 minutes
+window.__oblong.field.census()   // { loose, molded, placed, aside }
 ```
 
-Then compare the variance of the `R` channel before and after. It should hold
-(unevenness preserved) with the mean essentially unchanged (no sink).
+The seeded gathering is split exactly evenly — 12 of each — but do not expect
+the census to show that: colleagues start acting about four seconds in, so by
+the time you run it the arrangement has already moved on. To check the split
+itself, check the seed:
 
-Measured on an M2 Pro: 60 fps at retina, 131k triangles in the surface, ~12k in
-the scene, 420 KB of assets, 219 KB gzipped JS.
+```js
+const { seedActions, seedBalance } = await import('/src/state/seed.js')
+seedBalance(seedActions())       // [12, 12, 12], and must stay equal
+```
+
+Measured on an M2 Pro: 60 fps at retina, ~65k triangles, 3.4 MB of assets,
+216 KB gzipped JS.
 
 ---
 

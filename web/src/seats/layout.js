@@ -35,7 +35,11 @@ export function seatLayout() {
       facing: dir,
       rotationY: Math.atan2(-dir.x, -dir.z),
       eye: new THREE.Vector3(x, EYE, z),
-      lookAt: new THREE.Vector3(x * 0.14, TABLE_TOP + 0.02, z * -0.10),
+      // Look across the table to the people opposite, not down at the wood
+      // in front of you — half the frame was bare tabletop otherwise.
+      lookAt: new THREE.Vector3(
+        x * 0.10, TABLE_TOP + 0.16,
+        z !== 0 ? -Math.sign(z) * TABLE_DEP * 0.34 : 0),
     })
   }
 

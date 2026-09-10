@@ -1,9 +1,10 @@
-"""The oblong table: a heavy refectory trestle in dark oak, plus one chair.
+"""The oblong table: a heavy refectory trestle in oak, plus one chair.
 
-The table top is deliberately a *tray* — a rim frame around an open, recessed
-bed. The live heightfield built in Three.js fills that bed, so the relief has
-room to rise and dip without ever escaping the furniture. The rim is also where
-objects that get set aside come to rest.
+The top is a plain flat slab. An earlier version made it a tray holding a
+deforming heightfield, which misread the passage: the "table topography" it
+describes emerges "as we continually test, manipulate, and move these objects"
+— it is the shifting arrangement of the objects on the table, not the table
+changing shape. A real table stays flat, and so does this one.
 
 Only one chair is exported; the runtime instances it around the seat ring.
 """
@@ -16,32 +17,20 @@ import materials as M
 import meshutil as U
 import palette as P
 
-RIM_TOP = P.TABLE_TOP            # 0.75, flush with the heightfield base plane
-RIM_BOT = RIM_TOP - 0.18
-BED_Z = RIM_TOP - 0.15           # solid floor under the heightfield
-APRON_TOP = RIM_BOT
+TOP_Z = P.TABLE_TOP              # 0.75, the working surface
+TOP_THICK = 0.10
+APRON_TOP = TOP_Z - TOP_THICK
 APRON_BOT = APRON_TOP - 0.17
 
 HALF_L, HALF_D = P.TABLE_LEN / 2, P.TABLE_DEP / 2
-IN_L, IN_D = P.FIELD_LEN / 2, P.FIELD_DEP / 2
 
 TRESTLE_X = (-6.8, -3.4, 0.0, 3.4, 6.8)
 
 
-def _rim(bm):
-    """Four bars forming the tray lip, mitred by simple overlap at the ends."""
-    z = (RIM_BOT + RIM_TOP) / 2
-    h = RIM_TOP - RIM_BOT
-    # long sides run the full length; short ends fill between them
-    U.add_box(bm, (0, (IN_D + HALF_D) / 2, z), (P.TABLE_LEN, P.RIM, h))
-    U.add_box(bm, (0, -(IN_D + HALF_D) / 2, z), (P.TABLE_LEN, P.RIM, h))
-    U.add_box(bm, ((IN_L + HALF_L) / 2, 0, z), (P.RIM, P.FIELD_DEP, h))
-    U.add_box(bm, (-(IN_L + HALF_L) / 2, 0, z), (P.RIM, P.FIELD_DEP, h))
-
-
-def _bed(bm):
-    """The recessed floor the heightfield sits above."""
-    U.add_box(bm, (0, 0, BED_Z), (P.FIELD_LEN, P.FIELD_DEP, 0.04))
+def _top(bm):
+    """One solid slab. Objects rest directly on it."""
+    U.add_box(bm, (0, 0, TOP_Z - TOP_THICK / 2),
+              (P.TABLE_LEN, P.TABLE_DEP, TOP_THICK))
 
 
 def _apron(bm):
@@ -70,8 +59,7 @@ def _stretcher(bm):
 
 def build_table():
     bm = U.new_bmesh()
-    _rim(bm)
-    _bed(bm)
+    _top(bm)
     _apron(bm)
     for x in TRESTLE_X:
         _trestle(bm, x)

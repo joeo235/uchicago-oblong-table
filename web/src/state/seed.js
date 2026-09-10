@@ -1,16 +1,23 @@
 /**
  * The gathering already in progress.
  *
- * You do not arrive at a blank table — the passage describes a room full of
- * colleagues who have been at this a while. These marks are that history.
+ * You do not arrive at a blank table. These are the gestures colleagues have
+ * already made — piles where people worked something over together, tidy rows
+ * where someone applied a method, a fringe at the rim of things considered and
+ * put down.
  *
- * The split across the three gestures is deliberately even. Weighting it toward
- * molding would quietly turn the piece into an argument for adoption, which is
+ * The split across the three is deliberately even. Weighting it toward molding
+ * would quietly turn the piece into an argument for adoption, which is
  * precisely what the passage declines to make.
  */
-import { FIELD_DEP, FIELD_LEN } from '../config.js'
+import { FIELD_DEP, FIELD_LEN, GESTURE, OBJECT_COUNT } from '../config.js'
 
-const SEED_COUNT = 60
+const MOUNDS = 4          // clusters of molded work
+const PER_MOUND = 3
+const ARRAYS = 3          // methodical rows
+const PER_ARRAY = 4
+const ASIDE = 12
+const GRID = 0.34
 
 /** mulberry32 — small, fast, and identical for every visitor. */
 export function prng(seed) {
@@ -24,28 +31,57 @@ export function prng(seed) {
   }
 }
 
-export function seedMarks(seed = 20260909) {
+/** Ordered list of prior gestures: { objectIndex, gesture, x, z }. */
+export function seedActions(seed = 20260909) {
   const rand = prng(seed)
-  const marks = []
+  const actions = []
+  let next = 0
+  const take = () => (next < OBJECT_COUNT ? next++ : null)
 
-  // Equal thirds, interleaved so no region of the table belongs to one gesture.
-  const order = []
-  for (let i = 0; i < SEED_COUNT; i++) order.push(i % 3)
-  for (let i = order.length - 1; i > 0; i--) {
-    const j = Math.floor(rand() * (i + 1))
-    ;[order[i], order[j]] = [order[j], order[i]]
+  // mounds: several people working the same object over, piling it up
+  for (let m = 0; m < MOUNDS; m++) {
+    const cx = (rand() - 0.5) * FIELD_LEN * 0.78
+    const cz = (rand() - 0.5) * FIELD_DEP * 0.52
+    for (let k = 0; k < PER_MOUND; k++) {
+      const i = take()
+      if (i === null) break
+      actions.push({
+        objectIndex: i, gesture: GESTURE.MOLD,
+        x: cx + (rand() - 0.5) * 0.16,
+        z: cz + (rand() - 0.5) * 0.16,
+      })
+    }
   }
 
-  for (const grammar of order) {
-    const x = (rand() - 0.5) * FIELD_LEN * 0.94
-    const z = (rand() - 0.5) * FIELD_DEP * 0.88
-    marks.push({
-      x, z, grammar,
-      radius: 0.34 + rand() * 0.46,
-      amp: 0.055 + rand() * 0.085,
-      seed: rand(),
-      aged: true,
-    })
+  // arrays: a precise methodology, laid out in a row on the grid
+  for (let a = 0; a < ARRAYS; a++) {
+    const ox = Math.round(((rand() - 0.5) * FIELD_LEN * 0.66) / GRID) * GRID
+    const oz = Math.round(((rand() - 0.5) * FIELD_DEP * 0.44) / GRID) * GRID
+    const along = rand() < 0.7
+    for (let k = 0; k < PER_ARRAY; k++) {
+      const i = take()
+      if (i === null) break
+      actions.push({
+        objectIndex: i, gesture: GESTURE.METHOD,
+        x: ox + (along ? k * GRID : 0),
+        z: oz + (along ? 0 : k * GRID),
+      })
+    }
   }
-  return marks
+
+  // handled, explored, and deliberately set aside
+  for (let k = 0; k < ASIDE; k++) {
+    const i = take()
+    if (i === null) break
+    actions.push({ objectIndex: i, gesture: GESTURE.ASIDE, x: 0, z: 0 })
+  }
+
+  return actions
+}
+
+/** Sanity aid: the split across the three gestures, which must stay even. */
+export function seedBalance(actions) {
+  const c = [0, 0, 0]
+  for (const a of actions) c[a.gesture]++
+  return c
 }

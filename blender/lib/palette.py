@@ -21,16 +21,27 @@ SEATS_LONG = 12           # per long side
 SEATS_SHORT = 2           # per short end
 SEAT_COUNT = 2 * SEATS_LONG + 2 * SEATS_SHORT   # 28
 
-QUAD_INNER = 46.0         # clear span of the Quad before the buildings start
-QUAD_HEIGHT = 15.0        # nominal cornice line; bays vary around it
+# The Quad is a large open lawn; the ranges stand well back from the table.
+QUAD_INNER = 88.0         # clear span of the Quad before the buildings start
+QUAD_HEIGHT = 16.0        # nominal cornice line; bays vary around it
 
 # ------------------------------------------------------------------- colours
-OAK_DARK     = (0.055, 0.036, 0.024)
-OAK_MID      = (0.098, 0.064, 0.041)
-LIMESTONE    = (0.128, 0.122, 0.104)
-LIMESTONE_HI = (0.225, 0.214, 0.183)
-SLATE_ROOF   = (0.040, 0.042, 0.052)
+# Late afternoon, not dusk. Blue Bedford limestone is a warm pale grey in
+# daylight and only reads near-black in silhouette, so these are the daytime
+# values: the scene is lit, and the architecture is meant to be legible.
+OAK_DARK     = (0.115, 0.072, 0.043)
+OAK_MID      = (0.165, 0.108, 0.064)
+LIMESTONE    = (0.208, 0.194, 0.164)
+LIMESTONE_HI = (0.310, 0.296, 0.258)
+SLATE_ROOF   = (0.085, 0.090, 0.105)
 BRASS        = (0.420, 0.310, 0.130)
+
+LAWN         = (0.068, 0.125, 0.050)
+LAWN_DRY     = (0.130, 0.165, 0.070)
+PATH_STONE   = (0.235, 0.220, 0.196)
+BARK         = (0.075, 0.055, 0.042)
+LEAF         = (0.070, 0.138, 0.055)
+LEAF_LIGHT   = (0.135, 0.235, 0.085)
 
 # Gesture grammars. These three must read as peers — equal chroma, equal
 # luminance weight. Nothing here should imply a preferred outcome.
@@ -41,21 +52,32 @@ SET_ASIDE = (0.330, 0.360, 0.720)   # deep considered indigo
 FACULTY   = (0.900, 0.620, 0.290)   # warm presence at a seat
 STUDENT   = (0.550, 0.830, 0.900)   # cool, and arriving from outside the ring
 
-# The nine AI object archetypes, in build order.
+def srgb(hex_code):
+    """sRGB hex -> linear RGB, which is what Blender's colour inputs expect."""
+    h = hex_code.lstrip("#")
+    out = []
+    for i in (0, 2, 4):
+        c = int(h[i:i + 2], 16) / 255.0
+        out.append(c / 12.92 if c <= 0.04045 else ((c + 0.055) / 1.055) ** 2.4)
+    return tuple(out)
+
+
+# The ten AI objects, in build order. Each is shaped like a use, not a product.
 OBJECT_TINTS = [
-    (0.72, 0.44, 0.86),   # lattice knot
-    (0.36, 0.66, 0.88),   # plate stack
-    (0.90, 0.56, 0.32),   # ring spiral
-    (0.48, 0.82, 0.62),   # rod cluster
-    (0.88, 0.40, 0.52),   # folded ribbon
-    (0.94, 0.78, 0.36),   # faceted seed
-    (0.44, 0.54, 0.92),   # nested cage
-    (0.62, 0.86, 0.44),   # filament bundle
-    (0.82, 0.46, 0.72),   # torus weave
+    srgb("#5B8FC7"),   # quiz
+    srgb("#7FA97C"),   # grading rubric
+    srgb("#D07A5E"),   # tutoring dialogue
+    srgb("#8A76B8"),   # summariser
+    srgb("#4E9E9B"),   # translator
+    srgb("#5C6E9E"),   # coding assistant
+    srgb("#D2A24C"),   # image generator
+    srgb("#C06B8E"),   # literature search
+    srgb("#97A254"),   # data analysis
+    srgb("#B5654F"),   # margin comments
 ]
 
 OBJECT_NAMES = [
-    "lattice knot", "plate stack", "ring spiral", "rod cluster",
-    "folded ribbon", "faceted seed", "nested cage", "filament bundle",
-    "torus weave",
+    "a quiz", "a grading rubric", "a tutoring dialogue", "a summariser",
+    "a translator", "a coding assistant", "an image generator",
+    "a literature search", "a data analysis", "a set of margin comments",
 ]
