@@ -20,13 +20,11 @@
 > our engagement with them changes, and as we learn more from each other, from teaching, and,
 > importantly, from our students.
 
-**Attribution:** _<!-- PLACEHOLDER — please replace with the verified citation. -->_
-AI in Education report, University of Chicago.
+**Attribution:** AI in Education report, University of Chicago.
 
-> Note: this citation was not verifiable from public web sources at build time. One source
-> attributes a 2025 UChicago AI in Education report to a committee chaired by Emily Lynn Osborn,
-> but that this passage comes from that document was not confirmed. Replace the line above with
-> the correct title, authorship, and date.
+> Provenance confirmed by Joe Olivier. If a fuller citation is wanted — exact title, authorship,
+> date — it goes here and in `CITATION` in `web/src/ui/passage.js`, which is what the reader
+> panel displays.
 
 ---
 

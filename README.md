@@ -164,7 +164,7 @@ Measured on an M2 Pro: 60 fps at retina, ~65k triangles, 3.4 MB of assets,
 
 ## Attribution
 
-The passage is quoted in [docs/passage.md](docs/passage.md) with a **placeholder
-citation** — the exact title, authorship and date could not be verified from
-public sources at build time, and should be filled in before this is shown
-publicly.
+The passage is from the AI in Education report at the University of Chicago and
+is quoted in full in [docs/passage.md](docs/passage.md). The line the reader
+panel displays lives in `CITATION` in `web/src/ui/passage.js`; a fuller
+citation can be dropped in there and in the doc.
