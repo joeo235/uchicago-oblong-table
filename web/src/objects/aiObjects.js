@@ -27,6 +27,7 @@ import { prng } from '../state/seed.js'
 
 const STACK_RADIUS = 0.26      // how close counts as piling onto the same mound
 const GRID = 0.34              // spacing a methodical placement snaps to
+const MAX_PILE = 0.55          // how high a mound gets before it spreads instead
 
 const SCALE = { loose: 1.0, molded: 1.5, placed: 1.0, aside: 0.86 }
 
@@ -91,6 +92,7 @@ export class ObjectField {
     this.items = []
     this.rand = prng(seed)
     this.nextAside = 0
+    this.moldCounter = 0
 
     for (let i = 0; i < OBJECT_COUNT; i++) {
       const a = i % archetypes.length
@@ -110,6 +112,7 @@ export class ObjectField {
         mesh,
         uniforms,
         state: 'loose',
+        moldSeq: 0,          // when it was worked; gives a pile a definite bottom
         height: bb.max.y - bb.min.y,
         pos: new THREE.Vector3(),
         target: new THREE.Vector3(),
@@ -163,13 +166,50 @@ export class ObjectField {
    */
   supportY(x, z, self) {
     let y = TABLE_TOP
+    // An object may only rest on something worked *before* it. Without that
+    // rule two objects in the same spot each try to sit on the other, and
+    // every settle pass leapfrogs the pair a little higher — a pile that
+    // climbs without bound. The order makes support a strict hierarchy.
+    const selfSeq = self && self.state === 'molded' ? self.moldSeq : Infinity
     for (const o of this.items) {
-      if (o === self || o.state === 'loose' || o.state === 'aside') continue
+      // Nothing rests on a thing that is loose, set aside, or in someone's hand.
+      if (o === self || o.held) continue
+      if (o.state === 'loose' || o.state === 'aside') continue
+      if (o.state === 'molded' && o.moldSeq >= selfSeq) continue
       const dx = o.target.x - x, dz = o.target.z - z
       if (dx * dx + dz * dz > STACK_RADIUS * STACK_RADIUS) continue
       y = Math.max(y, o.target.y + o.height * o.scale * 0.80)
     }
     return y
+  }
+
+  /**
+   * Re-seat everything that is standing on something else.
+   *
+   * A resting height is only true for as long as whatever is underneath stays
+   * put. Set the bottom of a pile aside, place it flat, pick it up, or nudge
+   * it out from under, and anything stacked on top keeps its old height and
+   * hangs in the air. Any change that can remove support runs this.
+   */
+  settle() {
+    // Because support only ever points backward in mold order, one pass in
+    // that order is enough: every object is re-seated after everything it
+    // could possibly be standing on.
+    const stacked = this.items
+      .filter((o) => o.state === 'molded' && !o.held)
+      .sort((a, b) => a.moldSeq - b.moldSeq)
+    for (const o of stacked) {
+      o.target.y = this.supportY(o.target.x, o.target.z, o)
+    }
+    return stacked.length
+  }
+
+  /** Anything left hovering with nothing beneath it — should always be zero. */
+  floating(tolerance = 0.02) {
+    return this.items.filter((o) => {
+      if (o.held || o.state === 'aside' || o.state === 'loose') return false
+      return o.target.y - this.supportY(o.target.x, o.target.z, o) > tolerance
+    })
   }
 
   /** Height of the object landscape above the wood, for reading the table. */
@@ -213,9 +253,20 @@ export class ObjectField {
 
   mold(item, x, z) {
     // Molding piles: the object comes to rest on whatever is already worked
-    // into this spot, so a mound builds up where a group has been at it.
-    const y = this.supportY(x, z, item)
+    // into this spot, so a mound builds up where a group has been at it. Past
+    // a few deep it spreads sideways instead of towering — left unbounded, a
+    // long session stacks a single spot metres into the air.
+    //
+    // The sequence number is assigned first: it puts this object at the top of
+    // the stacking order, so it rests on what is already there and nothing
+    // already there tries to rest back on it.
     item.state = 'molded'
+    item.moldSeq = ++this.moldCounter
+    let y = this.supportY(x, z, item)
+    if (y > TABLE_TOP + MAX_PILE) {
+      const spot = this._spreadFrom(x, z, item)
+      x = spot.x; z = spot.z; y = spot.y
+    }
     item.scale = SCALE.molded * (0.86 + this.rand() * 0.34)
     item.tilt = (this.rand() - 0.5) * 0.42
     item.spin = (this.rand() - 0.5) * 0.10
@@ -223,6 +274,7 @@ export class ObjectField {
     item.glow = 1.18
     item.uniforms.uMorph.value = 0.013 + this.rand() * 0.010
     item.target.set(x, y, z)
+    this.settle()
     return { x, z, gesture: 0, height: y - TABLE_TOP }
   }
 
@@ -239,7 +291,27 @@ export class ObjectField {
     item.uniforms.uMorph.value = 0.003
     item.mesh.rotation.y = 0
     item.target.set(gx, TABLE_TOP, gz)
+    this.settle()                      // it may have been holding something up
     return { x: gx, z: gz, gesture: 1, height: 0 }
+  }
+
+  /** Somewhere near (x, z) where a mound is not already too tall. */
+  _spreadFrom(x, z, item) {
+    const hx = FIELD_LEN / 2 - 0.25, hz = FIELD_DEP / 2 - 0.20
+    let best = { x, z, y: this.supportY(x, z, item) }
+    // Search out far enough to actually reach bare wood. A short search finds
+    // only the shoulder of the mound it is trying to escape, and the pile goes
+    // on growing; on a 15-unit table there is nearly always free space.
+    for (let i = 1; i <= 40; i++) {
+      const a = i * 2.39996                  // golden angle, so it fans evenly
+      const r = 0.22 + i * 0.085
+      const cx = THREE.MathUtils.clamp(x + Math.cos(a) * r, -hx, hx)
+      const cz = THREE.MathUtils.clamp(z + Math.sin(a) * r, -hz, hz)
+      const y = this.supportY(cx, cz, item)
+      if (y < best.y) best = { x: cx, z: cz, y }
+      if (y <= TABLE_TOP + 1e-6) break
+    }
+    return best
   }
 
   setAside(item) {
@@ -252,6 +324,7 @@ export class ObjectField {
     item.glow = 0.72
     item.uniforms.uMorph.value = 0.001
     item.target.set(slot.x, TABLE_TOP, slot.y)
+    this.settle()                      // whatever was piled on it comes down
     return { x: slot.x, z: slot.y, gesture: 2, height: 0 }
   }
 
@@ -268,9 +341,16 @@ export class ObjectField {
         o.target.x + (dx / d) * f, -FIELD_LEN / 2, FIELD_LEN / 2)
       o.target.z = THREE.MathUtils.clamp(
         o.target.z + (dz / d) * f, -FIELD_DEP / 2, FIELD_DEP / 2)
-      if (o.state === 'molded') o.target.y = this.supportY(o.target.x, o.target.z, o)
+      // A methodology stays methodical even when it gets moved.
+      if (o.state === 'placed') {
+        o.target.x = Math.round(o.target.x / GRID) * GRID
+        o.target.z = Math.round(o.target.z / GRID) * GRID
+      }
       moved++
     }
+    // Settle once, after everything has moved — doing it inside the loop makes
+    // the result depend on the order objects happen to be iterated in.
+    this.settle()
     return moved
   }
 

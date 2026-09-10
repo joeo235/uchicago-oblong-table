@@ -29,8 +29,10 @@ export class Gestures {
   take(item) {
     if (this.held || item.state === 'aside') return false
     this.held = item
+    item.held = true                   // it is in the air now: nothing rests on it
     this.origin.copy(item.target)
     item.glow = 1.6
+    this.field.settle()
     this.passage.show('take')
     return true
   }
@@ -38,8 +40,13 @@ export class Gestures {
   putBack() {
     if (!this.held) return
     const it = this.held
+    it.held = false
     it.target.copy(this.origin)
+    if (it.state === 'molded') {
+      it.target.y = this.field.supportY(it.target.x, it.target.z, it)
+    }
     it.glow = it.state === 'loose' ? 1 : it.glow
+    this.field.settle()
     this._reset()
   }
 
@@ -111,6 +118,7 @@ export class Gestures {
   }
 
   _finish(result, item) {
+    item.held = false
     this._reset()
     this.onCommit({ ...result, objectIndex: item.index }, item)
   }
