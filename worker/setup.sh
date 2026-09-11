@@ -39,12 +39,47 @@ fi
 
 echo "==> setting the moderator key"
 KEY="$(openssl rand -hex 24)"
+# Printed BEFORE it is uploaded. A secret cannot be read back out of
+# Cloudflare, so if anything later in this script fails after the upload, an
+# unprinted key is simply lost.
+echo
+echo "  ---------------------------------------------------------------"
+echo "  MODERATOR KEY - save this now, it cannot be read back:"
+echo
+echo "    $KEY"
+echo "  ---------------------------------------------------------------"
+echo
 printf '%s' "$KEY" | $W secret put MODERATOR_KEY
 
 echo "==> deploying"
-DEPLOY="$($W deploy 2>&1)"
-echo "$DEPLOY"
-URL="$(printf '%s' "$DEPLOY" | grep -oE 'https://[a-z0-9.-]*workers\.dev' | head -1 || true)"
+LOG="$(mktemp)"
+# Streamed rather than captured into a variable: capturing hid the reason a
+# deploy failed, and `set -e` then aborted before anything useful printed.
+set +e
+$W deploy 2>&1 | tee "$LOG"
+STATUS="${PIPESTATUS[0]}"
+set -e
+if [ "$STATUS" -ne 0 ]; then
+  echo
+  if grep -q "workers.dev subdomain" "$LOG"; then
+    # The usual first-run failure on a new account: the Worker uploads fine,
+    # but there is no workers.dev subdomain yet for it to be published to.
+    echo "The Worker uploaded, but this account has no workers.dev subdomain" >&2
+    echo "yet, so there is no URL to publish it to. One-time step:" >&2
+    echo >&2
+    echo "  1. Pick a subdomain (any name):" >&2
+    echo "     https://dash.cloudflare.com/$(npx --yes wrangler@latest whoami 2>/dev/null | grep -oE '[0-9a-f]{32}' | head -1)/workers/onboarding" >&2
+    echo "  2. Run this script again." >&2
+  else
+    echo "Deploy failed (exit $STATUS) - see the error above." >&2
+    echo "Once it is fixed:  cd worker && npx wrangler deploy" >&2
+  fi
+  echo >&2
+  echo "The moderator key printed above is already set. Keep it." >&2
+  exit "$STATUS"
+fi
+URL="$(grep -oE 'https://[a-z0-9.-]*workers\.dev' "$LOG" | head -1 || true)"
+rm -f "$LOG"
 
 echo
 echo "-----------------------------------------------------------------------"
