@@ -1,14 +1,15 @@
 # The Oblong Table
 
-An interactive rendering of a passage from the AI in Education report at the
-University of Chicago, which asks the reader to imagine the University's
+An interactive rendering of a passage from *Artificial Intelligence and
+Education at the University of Chicago* (Artificial Intelligence and Education
+Working Group, July 2025), which asks the reader to imagine the University's
 educational mission as a massive oblong table in the central Quad, strewn with
 AI objects, with every faculty member seated around it.
 
 The passage is already spatial, tactile and temporal — it describes something
 you could stand next to. This builds that thing. You take a seat at the table,
-pick up an AI object, choose what to do with it, and watch the surface record
-your choice alongside everyone else's.
+pick up an AI object, choose what to do with it, and watch the arrangement on
+the table change alongside everyone else's choices.
 
 The full passage is in [docs/passage.md](docs/passage.md).
 
@@ -211,7 +212,18 @@ Measured on an M2 Pro: 60 fps at retina, ~65k triangles, 3.4 MB of assets,
 
 ## Attribution
 
-The passage is from the AI in Education report at the University of Chicago and
-is quoted in full in [docs/passage.md](docs/passage.md). The line the reader
-panel displays lives in `CITATION` in `web/src/ui/passage.js`; a fuller
-citation can be dropped in there and in the doc.
+The passage is the fourth paragraph of the Preamble (pp. 1–2) of:
+
+> Artificial Intelligence and Education Working Group, "Artificial
+> Intelligence and Education at the University of Chicago" (University of
+> Chicago, July 2025), 1–2.
+
+Chaired by Emily Lynn Osborn. It is quoted in full, character-for-character, in
+[docs/passage.md](docs/passage.md), which also carries the working group's
+membership and the citation in APA and MLA. The text the reader panel displays
+is verified identical to the report.
+
+The report returns to the figure in its closing recommendations, proposing
+gatherings "perhaps over lunch (and perhaps around an oblong table on the
+Quad)" — so the table is the report's own image for where the conversation
+happens, not a reading imposed on it.

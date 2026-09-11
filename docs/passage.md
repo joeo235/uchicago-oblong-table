@@ -20,11 +20,49 @@
 > our engagement with them changes, and as we learn more from each other, from teaching, and,
 > importantly, from our students.
 
-**Attribution:** AI in Education report, University of Chicago.
+## Source
 
-> Provenance confirmed by Joe Olivier. If a fuller citation is wanted — exact title, authorship,
-> date — it goes here and in `CITATION` in `web/src/ui/passage.js`, which is what the reader
-> panel displays.
+**Artificial Intelligence and Education at the University of Chicago**
+Report by the Artificial Intelligence and Education Working Group (AIEWG)
+University of Chicago, July 2025 — 16 pages
+
+The passage is the fourth paragraph of the **Preamble**, spanning pages 1–2. It
+is quoted here character-for-character; the text in `web/src/ui/passage.js`,
+which is what the reader panel displays, is verified identical to the report.
+
+Chaired by Emily Lynn Osborn. Members: John S. Anderson, Kemal Badur, Lynn
+Barnett, Samantha Fenno, Victor O. Lima, Jason N. MacLean, Robin Paige, Andrei
+Pop, Abigail Reardon, Torsten Reimer, Borja Sotomayor, David Uminsky.
+
+### Citation
+
+Chicago, note:
+
+> Artificial Intelligence and Education Working Group, "Artificial
+> Intelligence and Education at the University of Chicago" (University of
+> Chicago, July 2025), 1–2.
+
+Chicago, bibliography:
+
+> Artificial Intelligence and Education Working Group. "Artificial
+> Intelligence and Education at the University of Chicago." University of
+> Chicago, July 2025.
+
+APA:
+
+> Artificial Intelligence and Education Working Group. (2025, July).
+> *Artificial intelligence and education at the University of Chicago*.
+> University of Chicago.
+
+MLA:
+
+> Artificial Intelligence and Education Working Group. "Artificial
+> Intelligence and Education at the University of Chicago." University of
+> Chicago, July 2025.
+
+If the report is published at a stable public URL, add it to each of these —
+Chicago and MLA both want it for an online document, and a reader has no other
+way to reach the source.
 
 ---
 
@@ -76,6 +114,15 @@ consensus, which the passage never does.
 
 Faculty and students are presences — a notebook at each place, warming when
 someone speaks. Bodies would imply identity and land in the uncanny valley.
+
+## The report returns to the image itself
+
+The oblong table is not a one-off figure in the Preamble. The report comes back
+to it in its closing recommendations (p. 14), proposing gatherings of faculty,
+instructors and students "perhaps over lunch (and perhaps around an oblong
+table on the Quad)". Building the table is therefore not an outside reading
+imposed on the text — the report treats it as a place the conversation could
+actually happen.
 
 ## The objects are uses, not products
 
