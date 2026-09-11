@@ -31,6 +31,11 @@ jobs:
           cache-dependency-path: web/package-lock.json
       - run: npm ci
       - run: npm run build
+        env:
+          # Set once with:
+          #   gh variable set NOTES_API --body https://<worker>.workers.dev
+          # Left unset, notes fall back to being kept in each browser.
+          VITE_NOTES_API: ${{ vars.NOTES_API }}
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

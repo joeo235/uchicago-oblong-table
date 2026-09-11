@@ -219,6 +219,11 @@ button:hover { background: rgba(30, 34, 44, 0.9); border-color: rgba(236, 229, 2
   font-family: var(--serif); font-style: italic; font-size: 0.9rem;
   color: var(--dim); line-height: 1.55;
 }
+#notes .err {
+  margin: 0 0 1rem; padding: 0.65rem 0.8rem; border-radius: 2px;
+  background: rgba(217, 138, 58, 0.14); border: 1px solid rgba(217, 138, 58, 0.4);
+  font-size: 0.84rem; line-height: 1.5; color: #f0d9bd;
+}
 #note-form { display: flex; flex-direction: column; gap: 0.5rem; }
 #note-form label {
   font-size: 0.72rem; letter-spacing: 0.08em; text-transform: uppercase;

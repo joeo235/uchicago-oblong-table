@@ -144,14 +144,31 @@ a blank slab. The glazing is deliberately matte and very dark.
 
 ## Sharing notes
 
-The note store is deliberately an interface. `LocalNotes` keeps notes in the
-browser; a shared store has to provide the same two methods and somewhere to
-put the data, which a static site on GitHub Pages cannot do by itself.
+Notes can be shared through a small Cloudflare Worker in [`worker/`](worker/),
+so a note left at a place is readable by whoever sits there next.
 
-Anything shared and publicly writable also needs decisions that are not
-technical: whether notes are anonymous, how long they last, who can remove
-one, and what happens when the box is found by someone who is not a colleague.
-Those want answering before the store is swapped, not after.
+```bash
+npx wrangler login     # once; opens a browser
+cd worker && ./setup.sh
+```
+
+`setup.sh` creates the KV namespace, stores a moderator key, deploys, and
+prints the one command that points the site at the Worker. Until that variable
+is set the site falls back to keeping notes in each visitor's own browser, and
+the notes panel says which of the two it is doing rather than implying the
+wrong one.
+
+Storage is one KV key per note with the note in the key's metadata, so a single
+`list()` returns everything and two simultaneous writers cannot lose each
+other's note — a single JSON blob under one key is a read-modify-write, and
+under concurrency one of the two writes vanishes.
+
+**Anyone who opens the site can write, so this is a public text box.** It has a
+280 character cap, a per-IP rate limit, an origin check and a moderator key
+that can delete any note. The rate limit rides on KV, which is eventually
+consistent, so it is a speed bump rather than a guarantee. Somebody should
+watch what accumulates; that part needs a person, not code. See
+[`worker/README.md`](worker/README.md) for how to remove a note.
 
 ## Verify it
 

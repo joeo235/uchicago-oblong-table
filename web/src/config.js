@@ -56,3 +56,10 @@ export const AMBIENT_GESTURE_EVERY = [6.0, 13.0]
 export const STUDENT_EVERY = [34.0, 58.0]
 
 export const STORAGE_KEY = 'oblong-table/v2'
+
+/**
+ * Base URL of the notes Worker (see ../../worker). Set at build time via
+ * VITE_NOTES_API. Empty means notes stay in this browser, which the notes
+ * panel states plainly rather than pretending to be shared.
+ */
+export const NOTES_API = (import.meta.env?.VITE_NOTES_API ?? '').trim()

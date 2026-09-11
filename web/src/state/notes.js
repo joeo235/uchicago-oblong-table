@@ -35,6 +35,7 @@ export class LocalNotes {
   constructor(key = 'oblong-table/notes/v1') {
     this.key = key
     this.shared = false
+    this.lastError = null
   }
 
   async list() {
@@ -51,7 +52,10 @@ export class LocalNotes {
 
   async add({ seat, text, visitor }) {
     const clean = cleanNote(text)
-    if (clean === null) return null
+    if (clean === null) {
+      this.lastError = 'That note is too short to leave.'
+      return null
+    }
     const note = {
       id: `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`,
       seat, text: clean, at: Date.now(), visitor: visitor ?? null,
@@ -62,8 +66,10 @@ export class LocalNotes {
       localStorage.setItem(this.key,
         JSON.stringify({ version: 1, notes: all.slice(-500) }))
     } catch {
-      return null                      // quota or private browsing
+      this.lastError = 'This browser will not store the note (private mode, or full).'
+      return null
     }
+    this.lastError = null
     return note
   }
 

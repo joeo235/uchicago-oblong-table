@@ -4,8 +4,27 @@
     {
       "name": "oblong-table",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev", "--prefix", "web"],
+      "runtimeArgs": [
+        "run",
+        "dev",
+        "--prefix",
+        "web"
+      ],
       "port": 5173
+    },
+    {
+      "name": "oblong-table-shared",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "run",
+        "dev",
+        "--prefix",
+        "web"
+      ],
+      "port": 5173,
+      "env": {
+        "VITE_NOTES_API": "http://127.0.0.1:8787"
+      }
     }
   ]
 }

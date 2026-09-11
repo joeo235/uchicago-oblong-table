@@ -120,7 +120,7 @@ export class Overlay {
    * @param {string} p.visitorId   to mark which ones are this visitor's own
    * @param {boolean} p.shared     whether other people can see what is written
    */
-  showNotes({ seat, isYours, notes, visitorId, shared }) {
+  showNotes({ seat, isYours, notes, visitorId, shared, error }) {
     document.getElementById('notes-title').textContent = isYours
       ? 'Your place at the table'
       : `A place at the table`
@@ -151,8 +151,14 @@ export class Overlay {
     const empty = document.getElementById('notes-empty')
     empty.hidden = notes.length > 0
     empty.textContent = isYours
-      ? 'Nothing here yet. This is your seat — whatever you write stays on the table.'
+      ? (shared
+        ? 'Nothing here yet. This is your seat — whatever you write stays on the table for whoever sits here next.'
+        : 'Nothing here yet. This is your seat — notes are kept in this browser only.')
       : 'Nothing has been left at this place.'
+
+    const err = document.getElementById('notes-error')
+    err.hidden = !error
+    err.textContent = error || ''
 
     this.noteForm.hidden = !isYours
     this._countNote()

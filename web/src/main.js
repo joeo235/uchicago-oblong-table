@@ -8,7 +8,7 @@
  */
 import * as THREE from 'three'
 
-import { OBJECT_NAMES, TABLE_TOP } from './config.js'
+import { NOTES_API, OBJECT_NAMES, TABLE_TOP } from './config.js'
 import { ObjectField } from './objects/aiObjects.js'
 import { Gestures } from './objects/gestures.js'
 import { loadAssets } from './scene/assets.js'
@@ -22,6 +22,7 @@ import { Gathering } from './seats/seats.js'
 import { Students } from './seats/students.js'
 import { visitorId } from './state/identity.js'
 import { LocalNotes, bySeat } from './state/notes.js'
+import { createNoteStore } from './state/notesRemote.js'
 import { loadHistory, saveHistory } from './state/persistence.js'
 import { prng, seedActions } from './state/seed.js'
 import { Overlay } from './ui/overlay.js'
@@ -123,7 +124,7 @@ async function boot() {
   // keeps notes in the browser, so they are yours across your own visits and
   // nobody else's. A shared store needs somewhere hosted and implements the
   // same two methods.
-  const notes = new LocalNotes()
+  const notes = createNoteStore(NOTES_API, LocalNotes)
   const me = { seat: yourSeat(), id: visitorId() }
   let noteIndex = new Map()
 
@@ -139,6 +140,7 @@ async function boot() {
       notes: noteIndex.get(seat) ?? [],
       visitorId: me.id,
       shared: notes.shared,
+      error: notes.lastError,
     })
   }
 
@@ -153,7 +155,7 @@ async function boot() {
     onOpenNotes: () => openNotes(me.seat),
     onNote: async (text) => {
       const saved = await notes.add({ seat: me.seat, text, visitor: me.id })
-      if (!saved) return
+      if (!saved) { openNotes(me.seat); return }   // show why it did not land
       await refreshNotes()
       openNotes(me.seat)
       // Leaving a note is an act of conversation, so it travels like one.

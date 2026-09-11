@@ -1,0 +1,17 @@
+name = "oblong-table-notes"
+main = "src/index.js"
+compatibility_date = "2026-09-01"
+
+# The id is filled in by ./setup.sh, which creates the namespace for you.
+[[kv_namespaces]]
+binding = "NOTES"
+id = "REPLACE_WITH_KV_ID"
+
+[vars]
+# Only these origins may write. Trivially spoofable by anything determined,
+# but it turns away drive-by bots, which is most of them.
+ALLOWED_ORIGINS = "https://joeo235.github.io,http://localhost:5173,http://localhost:4173"
+
+# Notes per IP per window, and the length of the window in seconds.
+RATE_LIMIT = "5"
+RATE_WINDOW_SECONDS = "600"
