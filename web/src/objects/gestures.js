@@ -8,7 +8,7 @@
  */
 import * as THREE from 'three'
 
-import { FIELD_DEP, FIELD_LEN, GESTURE, TABLE_TOP } from '../config.js'
+import { FIELD_DEP, FIELD_LEN, GESTURE, GRID, TABLE_TOP } from '../config.js'
 
 export class Gestures {
   constructor({ field, passage, hint, onCommit }) {
@@ -68,8 +68,8 @@ export class Gestures {
     let x = THREE.MathUtils.clamp(point.x, -hx, hx)
     let z = THREE.MathUtils.clamp(point.z, -hz, hz)
     if (this.mode === 'place') {
-      x = Math.round(x / 0.34) * 0.34
-      z = Math.round(z / 0.34) * 0.34
+      x = Math.round(x / GRID) * GRID
+      z = Math.round(z / GRID) * GRID
     }
 
     if (this.mode === 'mold') {

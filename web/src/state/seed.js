@@ -10,14 +10,14 @@
  * would quietly turn the piece into an argument for adoption, which is
  * precisely what the passage declines to make.
  */
-import { FIELD_DEP, FIELD_LEN, GESTURE, OBJECT_COUNT } from '../config.js'
+import { FIELD_DEP, FIELD_LEN, GESTURE, GRID, OBJECT_COUNT } from '../config.js'
 
-const MOUNDS = 4          // clusters of molded work
-const PER_MOUND = 3
-const ARRAYS = 3          // methodical rows
+const GROUPS = 4          // neighbourhoods of molded work
+const PER_GROUP = 2
+const ARRAYS = 2          // methodical rows
 const PER_ARRAY = 4
-const ASIDE = 12
-const GRID = 0.34
+const ASIDE = 8
+const SPREAD = 0.95       // how far apart the members of a group sit
 
 /** mulberry32 — small, fast, and identical for every visitor. */
 export function prng(seed) {
@@ -38,17 +38,22 @@ export function seedActions(seed = 20260909) {
   let next = 0
   const take = () => (next < OBJECT_COUNT ? next++ : null)
 
-  // mounds: several people working the same object over, piling it up
-  for (let m = 0; m < MOUNDS; m++) {
-    const cx = (rand() - 0.5) * FIELD_LEN * 0.78
-    const cz = (rand() - 0.5) * FIELD_DEP * 0.52
-    for (let k = 0; k < PER_MOUND; k++) {
+  // Neighbourhoods of molded work: a few people who have been at it in the
+  // same part of the table. Spread out, not piled — the members sit near each
+  // other but clear of each other, so the grouping reads without anything
+  // being balanced on anything else.
+  for (let g = 0; g < GROUPS; g++) {
+    const cx = (rand() - 0.5) * FIELD_LEN * 0.74
+    const cz = (rand() - 0.5) * FIELD_DEP * 0.34
+    const turn = rand() * Math.PI * 2
+    for (let k = 0; k < PER_GROUP; k++) {
       const i = take()
       if (i === null) break
+      const a = turn + (k / PER_GROUP) * Math.PI * 2
       actions.push({
         objectIndex: i, gesture: GESTURE.MOLD,
-        x: cx + (rand() - 0.5) * 0.16,
-        z: cz + (rand() - 0.5) * 0.16,
+        x: cx + Math.cos(a) * SPREAD,
+        z: cz + Math.sin(a) * SPREAD * 0.5,
       })
     }
   }

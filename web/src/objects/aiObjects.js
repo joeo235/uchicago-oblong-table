@@ -20,14 +20,16 @@
 import * as THREE from 'three'
 
 import {
-  FIELD_DEP, FIELD_LEN, OBJECT_COUNT, RIM, TABLE_DEP, TABLE_LEN, TABLE_TOP,
+  FIELD_DEP, FIELD_LEN, GRID, OBJECT_COUNT, RIM, TABLE_DEP, TABLE_LEN, TABLE_TOP,
 } from '../config.js'
 import { NOISE3 } from '../shaders/noise.js'
 import { prng } from '../state/seed.js'
 
 const STACK_RADIUS = 0.26      // how close counts as piling onto the same mound
-const GRID = 0.34              // spacing a methodical placement snaps to
 const MAX_PILE = 0.55          // how high a mound gets before it spreads instead
+// Objects may sit a little inside each other's nominal circle before it reads
+// as a collision — the radius is a half-diagonal, so it over-estimates.
+const NESTLE = 0.78
 
 const SCALE = { loose: 1.0, molded: 1.5, placed: 1.0, aside: 0.86 }
 
@@ -136,28 +138,95 @@ export class ObjectField {
 
   /** Somewhere on the open table, clear of anything already standing there. */
   scatter(item) {
-    for (let tries = 0; tries < 24; tries++) {
+    for (let tries = 0; tries < 40; tries++) {
       const x = (this.rand() - 0.5) * FIELD_LEN * 0.94
       const z = (this.rand() - 0.5) * FIELD_DEP * 0.80
-      if (this.clearAt(x, z, item, 0.30)) {
+      if (this.clearFor(item, x, z)) {
         item.target.set(x, TABLE_TOP, z)
         item.mesh.rotation.y = this.rand() * Math.PI * 2
         item.spin = (this.rand() - 0.5) * 0.06
-        item.drift.set((this.rand() - 0.5) * 0.004, (this.rand() - 0.5) * 0.003)
+        item.drift.set((this.rand() - 0.5) * 0.0006, (this.rand() - 0.5) * 0.00045)
         return
       }
     }
-    item.target.set((this.rand() - 0.5) * FIELD_LEN * 0.9, TABLE_TOP,
-                    (this.rand() - 0.5) * FIELD_DEP * 0.8)
+    const spot = this.findClear(item, (this.rand() - 0.5) * FIELD_LEN * 0.9,
+                                (this.rand() - 0.5) * FIELD_DEP * 0.8)
+    item.target.set(spot.x, TABLE_TOP, spot.z)
   }
 
-  clearAt(x, z, self, r) {
+  /**
+   * Footprint radius on the table — half the diagonal of the object's own
+   * bounding box in plan, scaled. Conservative, and it does not depend on how
+   * the object happens to be turned.
+   */
+  radiusOf(item) {
+    if (item._r0 === undefined) {
+      item.mesh.geometry.computeBoundingBox()
+      const bb = item.mesh.geometry.boundingBox
+      item._r0 = 0.5 * Math.hypot(bb.max.x - bb.min.x, bb.max.z - bb.min.z)
+    }
+    return item._r0 * item.scale
+  }
+
+  /**
+   * Is there room for `item` at (x, z) without touching anything standing?
+   *
+   * Pass `atY` to ask only about things at that height. An object is allowed
+   * to share a footprint with what it is stacked on — that is what a pile is —
+   * but not with something sitting beside it on the same level.
+   */
+  clearFor(item, x, z, { slack = NESTLE, atY = null } = {}) {
+    const ri = this.radiusOf(item)
     for (const o of this.items) {
-      if (o === self || o.state === 'aside') continue
+      if (o === item || o.held) continue
+      if (atY !== null && Math.abs(o.target.y - atY) > 0.02) continue
       const dx = o.target.x - x, dz = o.target.z - z
-      if (dx * dx + dz * dz < r * r) return false
+      const need = (ri + this.radiusOf(o)) * slack
+      if (dx * dx + dz * dz < need * need) return false
     }
     return true
+  }
+
+  /**
+   * Move any *loose* object that is in the way out of the way.
+   *
+   * When someone puts a thing down somewhere deliberately, the thing they
+   * chose should stay where they put it and whatever was lying there should
+   * shift — "we continually test, manipulate, and move these objects". Only
+   * loose objects yield; a methodical placement or a worked pile has been
+   * put there on purpose and is left alone.
+   */
+  _displaceLoose(item, atY) {
+    let moved = 0
+    for (const o of this.items) {
+      if (o === item || o.held || o.state !== 'loose') continue
+      if (Math.abs(o.target.y - atY) > 0.02) continue
+      const dx = o.target.x - item.target.x, dz = o.target.z - item.target.z
+      const need = (this.radiusOf(item) + this.radiusOf(o)) * NESTLE
+      if (dx * dx + dz * dz >= need * need) continue
+      const spot = this.findClear(o, o.target.x, o.target.z)
+      if (this.clearFor(o, spot.x, spot.z)) {
+        o.target.set(spot.x, TABLE_TOP, spot.z)
+        moved++
+      }
+    }
+    return moved
+  }
+
+  /** The nearest spot to (x, z) with room for `item`, searching outward. */
+  findClear(item, x, z) {
+    const hx = FIELD_LEN / 2 - 0.3, hz = FIELD_DEP / 2 - 0.25
+    const cx = THREE.MathUtils.clamp(x, -hx, hx)
+    const cz = THREE.MathUtils.clamp(z, -hz, hz)
+    if (this.clearFor(item, cx, cz)) return { x: cx, z: cz }
+    for (let i = 1; i <= 160; i++) {
+      const a = i * 2.39996                  // golden angle, so it fans evenly
+      const r = 0.18 + i * 0.035
+      const px = THREE.MathUtils.clamp(cx + Math.cos(a) * r, -hx, hx)
+      const pz = THREE.MathUtils.clamp(cz + Math.sin(a) * r, -hz, hz)
+      if (this.clearFor(item, px, pz)) return { x: px, z: pz }
+    }
+    return { x: cx, z: cz }                  // table is full; leave it be
   }
 
   /**
@@ -228,9 +297,32 @@ export class ObjectField {
 
   /** A free spot on the rim, worked around so set-aside objects do not stack. */
   claimRimSlot() {
-    const n = this.nextAside++
     const perimeter = 2 * (TABLE_LEN + TABLE_DEP)
-    const t = ((n * 0.113 + 0.05) % 1) * perimeter
+    // Walk the rim and take the position furthest from anything already set
+    // down. A fixed stride wraps the perimeter and starts landing on top of
+    // its own earlier slots once there are more than a handful.
+    const used = this.items.filter((o) => o.state === 'aside')
+      .map((o) => ({ x: o.target.x, z: o.target.z }))
+    let bestT = 0, bestD = -1
+    const SAMPLES = 240
+    for (let i = 0; i < SAMPLES; i++) {
+      const t = (i / SAMPLES) * perimeter
+      const p = this._rimPoint(t)
+      let d = Infinity
+      for (const u of used) d = Math.min(d, Math.hypot(u.x - p.x, u.z - p.z))
+      if (d > bestD) { bestD = d; bestT = t }   // NaN never wins, by design
+    }
+    this.nextAside++
+    return this._rimPoint(bestT)
+  }
+
+  /**
+   * A point on the rim, parameterised by distance around the perimeter.
+   * Returns { x, z } rather than a Vector2: a Vector2 carries the table's z in
+   * its `.y`, which is exactly the sort of thing that reads as `.z` somewhere
+   * else and silently yields NaN.
+   */
+  _rimPoint(t) {
     const inset = RIM * 0.5
     const halfL = TABLE_LEN / 2 - inset
     const halfD = TABLE_DEP / 2 - inset
@@ -239,19 +331,20 @@ export class ObjectField {
     else if (t < TABLE_LEN + TABLE_DEP) { x = halfL; z = halfD - (t - TABLE_LEN) }
     else if (t < 2 * TABLE_LEN + TABLE_DEP) { x = halfL - (t - TABLE_LEN - TABLE_DEP); z = -halfD }
     else { x = -halfL; z = -halfD + (t - 2 * TABLE_LEN - TABLE_DEP) }
-    return new THREE.Vector2(
-      THREE.MathUtils.clamp(x, -halfL, halfL),
-      THREE.MathUtils.clamp(z, -halfD, halfD))
+    return {
+      x: THREE.MathUtils.clamp(x, -halfL, halfL),
+      z: THREE.MathUtils.clamp(z, -halfD, halfD),
+    }
   }
 
   /** Commit a gesture. Returns the resulting arrangement change. */
-  apply(item, gesture, x, z) {
-    if (gesture === 0) return this.mold(item, x, z)
-    if (gesture === 1) return this.place(item, x, z)
+  apply(item, gesture, x, z, opts = {}) {
+    if (gesture === 0) return this.mold(item, x, z, opts)
+    if (gesture === 1) return this.place(item, x, z, opts)
     return this.setAside(item)
   }
 
-  mold(item, x, z) {
+  mold(item, x, z, opts = {}) {
     // Molding piles: the object comes to rest on whatever is already worked
     // into this spot, so a mound builds up where a group has been at it. Past
     // a few deep it spreads sideways instead of towering — left unbounded, a
@@ -262,12 +355,33 @@ export class ObjectField {
     // already there tries to rest back on it.
     item.state = 'molded'
     item.moldSeq = ++this.moldCounter
+    // Scale first. Clearance is measured from the footprint, and molding grows
+    // the object by about half again — checked at its old size it fits, then
+    // grows into whatever is beside it.
+    item.scale = SCALE.molded * (0.86 + this.rand() * 0.34)
+    if (opts.noStack) {
+      // Replayed history lands flat and clear. A pile is something you watch
+      // happen; arriving at a table of objects already sitting on each other
+      // just reads as a glitch.
+      const spot = this.findClear(item, x, z)
+      x = spot.x; z = spot.z
+    }
     let y = this.supportY(x, z, item)
     if (y > TABLE_TOP + MAX_PILE) {
       const spot = this._spreadFrom(x, z, item)
       x = spot.x; z = spot.z; y = spot.y
     }
-    item.scale = SCALE.molded * (0.86 + this.rand() * 0.34)
+    // Standing on something is fine — that is what a pile is. Standing
+    // *inside* a neighbour is not. Loose things in the way are moved aside
+    // first, so the spot someone actually chose is honoured; only if the
+    // blocker is itself deliberate does this object go elsewhere.
+    item.target.set(x, y, z)
+    this._displaceLoose(item, y)
+    if (!this.clearFor(item, x, z, { atY: y })) {
+      const spot = this.findClear(item, x, z)
+      x = spot.x; z = spot.z
+      y = this.supportY(x, z, item)
+    }
     item.tilt = (this.rand() - 0.5) * 0.42
     item.spin = (this.rand() - 0.5) * 0.10
     item.drift.set(0, 0)
@@ -293,6 +407,25 @@ export class ObjectField {
     item.target.set(gx, TABLE_TOP, gz)
     this.settle()                      // it may have been holding something up
     return { x: gx, z: gz, gesture: 1, height: 0 }
+  }
+
+  /** The closest unoccupied cell of the methodical grid. */
+  _freeCell(item, x, z) {
+    const hx = FIELD_LEN / 2 - 0.3, hz = FIELD_DEP / 2 - 0.25
+    const snap = (v, h) => THREE.MathUtils.clamp(Math.round(v / GRID) * GRID, -h, h)
+    const gx = snap(x, hx), gz = snap(z, hz)
+    if (this.clearFor(item, gx, gz)) return { x: gx, z: gz }
+    // rings of cells outward from the one asked for
+    for (let ring = 1; ring <= 12; ring++) {
+      for (let dx = -ring; dx <= ring; dx++) {
+        for (let dz = -ring; dz <= ring; dz++) {
+          if (Math.max(Math.abs(dx), Math.abs(dz)) !== ring) continue
+          const px = snap(gx + dx * GRID, hx), pz = snap(gz + dz * GRID, hz)
+          if (this.clearFor(item, px, pz)) return { x: px, z: pz }
+        }
+      }
+    }
+    return { x: gx, z: gz }
   }
 
   /** Somewhere near (x, z) where a mound is not already too tall. */
@@ -323,9 +456,9 @@ export class ObjectField {
     item.drift.set(0, 0)
     item.glow = 0.72
     item.uniforms.uMorph.value = 0.001
-    item.target.set(slot.x, TABLE_TOP, slot.y)
+    item.target.set(slot.x, TABLE_TOP, slot.z)
     this.settle()                      // whatever was piled on it comes down
-    return { x: slot.x, z: slot.y, gesture: 2, height: 0 }
+    return { x: slot.x, z: slot.z, gesture: 2, height: 0 }
   }
 
   /** Nudge things around without changing anyone's mind — see students.js. */
@@ -356,6 +489,17 @@ export class ObjectField {
 
   update(dt, time, held) {
     const k = Math.min(1, dt * 4)
+
+    // Hold the invariant rather than only establishing it at boot. Colleagues
+    // and students go on rearranging the table for as long as it is open, and
+    // a clean start that decays over the first minute is not a clean table.
+    // Cheap at this count, and it moves nothing it cannot place clear.
+    this._repairIn = (this._repairIn ?? 0) - dt
+    if (this._repairIn <= 0) {
+      this._repairIn = 0.45
+      this.separate({ maxPasses: 2 })
+    }
+
     for (const item of this.items) {
       const u = item.uniforms
       u.uTime.value = time
@@ -364,12 +508,17 @@ export class ObjectField {
 
       if (held === item) continue
 
-      // loose objects drift: the gathering keeps moving them about
+      // Loose objects drift — the gathering keeps moving them about — but
+      // they turn aside rather than sliding through whatever is in the way.
       if (item.state === 'loose') {
-        item.target.x += item.drift.x * dt * 60
-        item.target.z += item.drift.y * dt * 60
-        if (Math.abs(item.target.x) > FIELD_LEN / 2 - 0.2) item.drift.x *= -1
-        if (Math.abs(item.target.z) > FIELD_DEP / 2 - 0.2) item.drift.y *= -1
+        const nx = item.target.x + item.drift.x * dt * 60
+        const nz = item.target.z + item.drift.y * dt * 60
+        if (Math.abs(nx) > FIELD_LEN / 2 - 0.25) item.drift.x *= -1
+        else if (this.clearFor(item, nx, item.target.z)) item.target.x = nx
+        else item.drift.x *= -1
+        if (Math.abs(nz) > FIELD_DEP / 2 - 0.22) item.drift.y *= -1
+        else if (this.clearFor(item, item.target.x, nz)) item.target.z = nz
+        else item.drift.y *= -1
       }
 
       item.mesh.rotation.y += item.spin * dt
@@ -381,6 +530,84 @@ export class ObjectField {
       item.pos.lerp(item.target, k)
       item.mesh.position.copy(item.pos)
     }
+  }
+
+  /**
+   * Pull apart anything whose footprint intersects something else, and
+   * optionally bring down anything standing on something else.
+   *
+   * Placement searches for a clear spot, but on a table this full the search
+   * can exhaust and fall back to an occupied one. Rather than trust that it
+   * never does, this repairs the result: the invariant is checked and fixed
+   * rather than assumed. The most movable object in each pair gives way —
+   * loose first, then molded, and a methodical placement only ever moves to
+   * another cell of its grid, so a tidy row stays on the grid.
+   *
+   * `flatten` also un-stacks. It is a separate step because `overlaps()`
+   * ignores pairs at different heights — a pile is *meant* to share a
+   * footprint — so stacking is invisible to the loop below.
+   */
+  separate({ maxPasses = 8, flatten = false } = {}) {
+    const rank = { loose: 0, molded: 1, placed: 2, aside: 3 }
+    let moved = 0, unstacked = 0
+
+    if (flatten) {
+      // lowest first, so a pile comes down from the bottom
+      const stacked = this.items
+        .filter((o) => o.state === 'molded' && o.target.y > TABLE_TOP + 0.005)
+        .sort((a, b) => a.target.y - b.target.y)
+      for (const o of stacked) {
+        const spot = this.findClear(o, o.target.x, o.target.z)
+        o.target.set(spot.x, TABLE_TOP, spot.z)
+        unstacked++
+      }
+    }
+    for (let pass = 0; pass < maxPasses; pass++) {
+      const pairs = this.overlaps()
+      if (!pairs.length) {
+        // Must still settle: an earlier pass may have moved the bottom of a
+        // pile, which leaves whatever was on it hanging. Returning here
+        // without settling was leaving objects in the air.
+        if (!flatten && moved) this.settle()
+        return { passes: pass, moved, unstacked }
+      }
+      let fixed = 0
+      for (const p of pairs) {
+        const A = this.items[p.a], B = this.items[p.b]
+        const give = rank[A.state] <= rank[B.state] ? A : B
+        if (give.state === 'aside') continue        // the rim is its own problem
+        const spot = give.state === 'placed'
+          ? this._freeCell(give, give.target.x, give.target.z)
+          : this.findClear(give, give.target.x, give.target.z)
+        if (this.clearFor(give, spot.x, spot.z)) {
+          give.target.x = spot.x
+          give.target.z = spot.z
+          give.target.y = give.state === 'molded'
+            ? this.supportY(spot.x, spot.z, give) : TABLE_TOP
+          fixed++; moved++
+        }
+      }
+      if (!fixed) break
+    }
+    if (!flatten) this.settle()        // settling would re-stack a flattened table
+    return { passes: maxPasses, moved, unstacked, remaining: this.overlaps().length }
+  }
+
+  /** Pairs of objects whose footprints intersect — should always be empty. */
+  overlaps() {
+    const out = []
+    for (let i = 0; i < this.items.length; i++) {
+      for (let j = i + 1; j < this.items.length; j++) {
+        const A = this.items[i], B = this.items[j]
+        if (A.held || B.held) continue
+        // things genuinely piled are meant to share a footprint
+        if (Math.abs(A.target.y - B.target.y) > 0.02) continue
+        const d = Math.hypot(A.target.x - B.target.x, A.target.z - B.target.z)
+        const need = (this.radiusOf(A) + this.radiusOf(B)) * NESTLE
+        if (d < need) out.push({ a: A.index, b: B.index, d, need })
+      }
+    }
+    return out
   }
 
   /** Census of the arrangement, for the legend and for verification. */

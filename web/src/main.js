@@ -89,10 +89,14 @@ async function boot() {
   const history = loadHistory()
   const replay = (a) => {
     const item = field.items[a.objectIndex]
-    if (item) field.apply(item, a.gesture, a.x, a.z)
+    // noStack: the table you arrive at has nothing balanced on anything else.
+    if (item) field.apply(item, a.gesture, a.x, a.z, { noStack: true })
   }
   seedActions().forEach(replay)
   history.forEach(replay)
+  // Guarantee the table you arrive at has nothing sitting on, or inside,
+  // anything else. Placement tries to find room; this checks that it did.
+  field.separate({ flatten: true })
   for (const it of field.items) it.pos.copy(it.target)
   const yourActions = [...history]
 

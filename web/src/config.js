@@ -20,6 +20,13 @@ export const SEATS_SHORT = 2
 export const GESTURE = { MOLD: 0, METHOD: 1, ASIDE: 2 }
 
 /**
+ * Pitch of the grid a methodical placement snaps to. It has to clear the
+ * objects themselves — at 0.34 a tidy row of things ~0.5 across simply
+ * interpenetrated. Shared by the runtime and the seeded gathering.
+ */
+export const GRID = 0.62
+
+/**
  * Equal chroma and near-equal luminance across the three. Nothing in this
  * palette should suggest that one gesture outranks another.
  */
@@ -28,8 +35,14 @@ export const GESTURE_COLOR = [0xd98a3a, 0x6fa87c, 0x6a6cc4]
 export const FACULTY_COLOR = 0xe8b06a
 export const STUDENT_COLOR = 0x4fa8c8
 
-/** How many AI objects are scattered on the table. */
-export const OBJECT_COUNT = 48
+/**
+ * How many AI objects are scattered on the table.
+ *
+ * Sized against the area available. Molding grows an object by about half
+ * again, and at 48 the table saturated: every clear-spot search exhausted and
+ * objects had nowhere to go but into each other.
+ */
+export const OBJECT_COUNT = 40
 
 /** The ten archetypes, matching blender/build_objects.py. */
 export const OBJECT_NAMES = [
