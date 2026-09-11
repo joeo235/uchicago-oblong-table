@@ -52,53 +52,37 @@ echo
 printf '%s' "$KEY" | $W secret put MODERATOR_KEY
 
 echo "==> deploying"
-LOG="$(mktemp)"
-# Streamed rather than captured into a variable: capturing hid the reason a
-# deploy failed, and `set -e` then aborted before anything useful printed.
+echo
+# Run un-piped. Wrangler asks questions here on a first deploy — notably which
+# workers.dev subdomain to use — and it only asks when it can see a terminal.
+# Piping this through tee to capture the URL hid the question entirely.
 set +e
-$W deploy 2>&1 | tee "$LOG"
-STATUS="${PIPESTATUS[0]}"
+$W deploy
+STATUS=$?
 set -e
 if [ "$STATUS" -ne 0 ]; then
   echo
-  if grep -q "workers.dev subdomain" "$LOG"; then
-    # The usual first-run failure on a new account: the Worker uploads fine,
-    # but there is no workers.dev subdomain yet for it to be published to.
-    echo "The Worker uploaded, but this account has no workers.dev subdomain" >&2
-    echo "yet, so there is no URL to publish it to. One-time step:" >&2
-    echo >&2
-    echo "  1. Pick a subdomain (any name):" >&2
-    echo "     https://dash.cloudflare.com/$(npx --yes wrangler@latest whoami 2>/dev/null | grep -oE '[0-9a-f]{32}' | head -1)/workers/onboarding" >&2
-    echo "  2. Run this script again." >&2
-  else
-    echo "Deploy failed (exit $STATUS) - see the error above." >&2
-    echo "Once it is fixed:  cd worker && npx wrangler deploy" >&2
-  fi
+  echo "Deploy did not finish (exit $STATUS) - see the error above." >&2
+  echo "If it mentioned a workers.dev subdomain: run this script again and" >&2
+  echo "answer yes, then type any name you like." >&2
   echo >&2
   echo "The moderator key printed above is already set. Keep it." >&2
   exit "$STATUS"
 fi
-URL="$(grep -oE 'https://[a-z0-9.-]*workers\.dev' "$LOG" | head -1 || true)"
-rm -f "$LOG"
 
 echo
 echo "-----------------------------------------------------------------------"
 echo "Moderator key (save this; it is not shown again):"
 echo "  $KEY"
 echo
-if [ -n "$URL" ]; then
-  echo "Worker URL:"
-  echo "  $URL"
-  echo
-  echo "Point the site at it:"
-  echo "  gh variable set NOTES_API --body \"$URL\" --repo joeo235/uchicago-oblong-table"
-  echo "  git commit --allow-empty -m 'Rebuild against the notes Worker' && git push"
-  echo
-  echo "Check it:"
-  echo "  curl -s $URL/health"
-else
-  echo "Deployed. Take the workers.dev URL from the output above."
-fi
+echo "Deployed. Copy the https://....workers.dev address from the output above,"
+echo "then point the site at it:"
+echo
+echo "  gh variable set NOTES_API --body <that-url> --repo joeo235/uchicago-oblong-table"
+echo "  git commit --allow-empty -m 'Rebuild against the notes Worker' && git push"
+echo
+echo "Check the Worker is answering:"
+echo "  curl -s <that-url>/health"
 echo
 echo "To remove a note:"
 echo "  curl -X DELETE -H \"X-Moderator-Key: $KEY\" <worker-url>/notes/<note-id>"
