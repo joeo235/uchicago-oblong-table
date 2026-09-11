@@ -163,12 +163,22 @@ Storage is one KV key per note with the note in the key's metadata, so a single
 other's note — a single JSON blob under one key is a read-modify-write, and
 under concurrency one of the two writes vanishes.
 
+Notes are read and written through Cloudflare KV, which is eventually
+consistent: the person writing sees their note immediately, because the client
+holds what it just wrote, but another visitor may not see it for up to about a
+minute.
+
 **Anyone who opens the site can write, so this is a public text box.** It has a
 280 character cap, a per-IP rate limit, an origin check and a moderator key
 that can delete any note. The rate limit rides on KV, which is eventually
 consistent, so it is a speed bump rather than a guarantee. Somebody should
-watch what accumulates; that part needs a person, not code. See
-[`worker/README.md`](worker/README.md) for how to remove a note.
+watch what accumulates; that part needs a person, not code.
+
+```bash
+cd worker && export MODERATOR_KEY=...
+./notes.sh list            # every note with its id
+./notes.sh delete <id>     # remove one
+```
 
 ## Verify it
 

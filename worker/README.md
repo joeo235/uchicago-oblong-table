@@ -23,6 +23,14 @@ URL plus the one command that points the site at it.
 | `DELETE /notes/:id` | requires `X-Moderator-Key` |
 | `GET /health` | liveness |
 
+## A note on timing
+
+KV is eventually consistent, so a note is not necessarily in the very next
+read. The client holds notes it has just written and merges them into its own
+view, so the person writing never sees their note vanish — but somebody
+*else* may not see it for up to about a minute. That is a property of the
+storage rather than something the client can hide.
+
 ## How notes are stored
 
 One KV key per note, `note:<padded-timestamp>:<id>`, with the note itself in
@@ -52,13 +60,16 @@ The rate limit rides on KV, which is eventually consistent, so treat it as a
 speed bump rather than a guarantee. **Somebody should watch what accumulates.**
 This is the part of the feature that needs a person, not code.
 
-## Removing a note
-
-Note ids are visible in `GET /notes`.
+## Looking at, and removing, notes
 
 ```bash
-curl -X DELETE -H "X-Moderator-Key: $KEY" "$WORKER_URL/notes/$NOTE_ID"
+export MODERATOR_KEY=...        # the key setup.sh printed
+./notes.sh list                 # every note with its id; needs no key
+./notes.sh delete <id>          # remove one
+./notes.sh clear                # remove all of them (asks first)
 ```
+
+Reading needs no key. Removing does.
 
 ## Local development
 

@@ -23,7 +23,7 @@
       ],
       "port": 5173,
       "env": {
-        "VITE_NOTES_API": "http://127.0.0.1:8787"
+        "VITE_NOTES_API": "https://oblong-table-notes.uchicago.workers.dev"
       }
     }
   ]
