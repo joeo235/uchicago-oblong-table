@@ -21,7 +21,7 @@ import {
   TABLE_DEP, TABLE_LEN, TABLE_TOP,
 } from '../config.js'
 import { prng } from '../state/seed.js'
-import { YOUR_SEAT, seatLayout } from './layout.js'
+import { seatLayout, yourSeat } from './layout.js'
 
 const PAPER_LIFT = 0.008     // sits on the wood
 
@@ -31,6 +31,7 @@ export class Gathering {
     this.onAct = onAct ?? (() => {})
     this.rand = prng(seed)
     this.seats = seatLayout()
+    this.yours = yourSeat()
     this.time = 0
     this.nextAct = 4.0
     this.group = new THREE.Group()
@@ -70,11 +71,64 @@ export class Gathering {
     this.paper = paper
     this.group.add(paper)
 
+    // A ribbon marks a notebook that has been written in. Scaled to nothing
+    // where there is nothing to read, so a blank setting stays blank.
+    const ribbon = new THREE.InstancedMesh(
+      new THREE.BoxGeometry(0.075, 0.008, 0.19),
+      new THREE.MeshStandardMaterial({ roughness: 0.7, metalness: 0.0 }), n)
+    ribbon.castShadow = false
+    ribbon.receiveShadow = true
+    const zero = new THREE.Vector3(0, 0, 0)
+    for (let i = 0; i < n; i++) {
+      m.compose(new THREE.Vector3(0, -10, 0), new THREE.Quaternion(), zero)
+      ribbon.setMatrixAt(i, m)
+    }
+    ribbon.instanceMatrix.needsUpdate = true
+    this.ribbon = ribbon
+    this.group.add(ribbon)
+
+    this.noteCounts = new Array(n).fill(0)
+
     this.warm = new THREE.Color(0xd9cfb8)     // plain paper
     this.you = new THREE.Color(0xf6ecd2)      // your own, a shade brighter
+    this.written = new THREE.Color(0xe7dcc0)  // a page with something on it
     this.speak = new THREE.Color(FACULTY_COLOR)
+    this.ribbonColor = new THREE.Color(0xc2703f)
     this._paint()
   }
+
+  /**
+   * Tell the table which places have notes at them.
+   * @param {Map<number, object[]>} bySeat notes grouped by seat index
+   */
+  setNotes(bySeat) {
+    const m = new THREE.Matrix4()
+    const q = new THREE.Quaternion()
+    const up = new THREE.Vector3(0, 1, 0)
+    const one = new THREE.Vector3(1, 1, 1)
+    const none = new THREE.Vector3(0, 0, 0)
+    for (let i = 0; i < this.seats.length; i++) {
+      const count = bySeat.get(i)?.length ?? 0
+      this.noteCounts[i] = count
+      const p = this.paperAt[i]
+      if (count > 0) {
+        // sits along the near edge of the notebook, angled with it
+        q.setFromAxisAngle(up, this.seats[i].rotationY)
+        const off = new THREE.Vector3(0.10, 0, 0).applyQuaternion(q)
+        m.compose(new THREE.Vector3(p.x + off.x, TABLE_TOP + 0.019, p.z + off.z),
+                  q, one)
+      } else {
+        m.compose(new THREE.Vector3(0, -10, 0), q, none)
+      }
+      this.ribbon.setMatrixAt(i, m)
+      this.ribbon.setColorAt(i, this.ribbonColor)
+    }
+    this.ribbon.instanceMatrix.needsUpdate = true
+    if (this.ribbon.instanceColor) this.ribbon.instanceColor.needsUpdate = true
+    this._paint()
+  }
+
+  hasNotes(seatIndex) { return (this.noteCounts[seatIndex] ?? 0) > 0 }
 
   /** Where a person at this seat would put their notebook down. */
   _placeSetting(seat) {
@@ -96,7 +150,8 @@ export class Gathering {
   _paint() {
     const c = new THREE.Color()
     for (let i = 0; i < this.seats.length; i++) {
-      const base = i === YOUR_SEAT ? this.you : this.warm
+      const base = i === this.yours ? this.you
+        : this.noteCounts?.[i] ? this.written : this.warm
       // Speaking warms the page rather than lighting a lamp over the chair.
       c.copy(base).lerp(this.speak, THREE.MathUtils.clamp(this.level[i] - 1, 0, 1))
       this.paper.setColorAt(i, c)
@@ -118,7 +173,7 @@ export class Gathering {
   /** A colleague picks something up in front of them and decides about it. */
   act(seatIndex = null) {
     const i = seatIndex ?? Math.floor(this.rand() * this.seats.length)
-    if (i === YOUR_SEAT) return this.act((i + 3) % this.seats.length)
+    if (i === this.yours) return this.act((i + 3) % this.seats.length)
     const seat = this.seats[i]
 
     // reach for whatever is loose nearest their own stretch of the table
@@ -151,7 +206,7 @@ export class Gathering {
     this.time = time
     for (let i = 0; i < this.seats.length; i++) {
       const breathe = 0.82 + Math.sin(time * this.rate[i] + this.phase[i]) * 0.18
-      const target = (i === YOUR_SEAT ? 1.5 : 1.0) * breathe
+      const target = (i === this.yours ? 1.5 : 1.0) * breathe
       this.level[i] += (target - this.level[i]) * Math.min(1, dt * 1.6)
     }
     this._paint()

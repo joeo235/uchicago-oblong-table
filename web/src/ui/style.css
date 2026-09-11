@@ -41,6 +41,15 @@ html, body {
 #ui { position: fixed; inset: 0; pointer-events: none; }
 #ui > * { pointer-events: auto; }
 
+/* Paint order needs to be explicit. Several of these carry backdrop-filter,
+   which promotes them into their own stacking context, so DOM order alone
+   stopped deciding what covered what — the masthead and the footer were
+   drawing on top of an open panel. */
+#masthead, #passage, .hint { z-index: 1; }
+#gestures, #controls { z-index: 2; }
+#legend { z-index: 20; }
+#notes, #reader { z-index: 30; }
+
 #masthead {
   position: absolute; top: 0; left: 0; right: 0; pointer-events: none;
   padding: 1.5rem 1.9rem 4.2rem;
@@ -172,6 +181,64 @@ button:hover { background: rgba(30, 34, 44, 0.9); border-color: rgba(236, 229, 2
 }
 
 #reader { inset: 0; background: rgba(6, 7, 11, 0.93); display: grid; place-items: center; }
+
+/* ---------------------------------------------------------------- notes */
+#notes {
+  /* `inset` does nothing without a position; it was laying out in flow and
+     covering none of the scene. */
+  position: absolute; inset: 0;
+  background: rgba(6, 7, 11, 0.88); display: grid; place-items: center;
+}
+#notes .sheet {
+  width: min(34rem, 92vw); max-height: 86vh; overflow-y: auto;
+  padding: 1.8rem; background: var(--panel); border: 1px solid var(--edge);
+  border-radius: 3px;
+}
+#notes h2 {
+  margin: 0 0 0.3rem; font-family: var(--serif); font-weight: 400;
+  font-size: 1.2rem; color: var(--ink);
+}
+#notes .scope {
+  margin: 0 0 1.2rem; font-size: 0.72rem; letter-spacing: 0.1em;
+  text-transform: uppercase; color: var(--dim);
+}
+#notes-list { list-style: none; margin: 0 0 1.2rem; padding: 0; }
+#notes-list li {
+  padding: 0.8rem 0; border-top: 1px solid var(--edge);
+  font-family: var(--serif); font-size: 0.95rem; line-height: 1.6;
+  color: var(--ink); white-space: pre-wrap; overflow-wrap: anywhere;
+}
+#notes-list li .meta {
+  display: block; margin-top: 0.45rem; font-family: var(--sans);
+  font-size: 0.68rem; letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--dim);
+}
+#notes-list li .meta .mine { color: var(--mold); }
+#notes .empty {
+  margin: 0 0 1.2rem; padding: 0.9rem 0; border-top: 1px solid var(--edge);
+  font-family: var(--serif); font-style: italic; font-size: 0.9rem;
+  color: var(--dim); line-height: 1.55;
+}
+#note-form { display: flex; flex-direction: column; gap: 0.5rem; }
+#note-form label {
+  font-size: 0.72rem; letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--dim);
+}
+#note-form textarea {
+  font: inherit; font-family: var(--serif); font-size: 0.95rem; line-height: 1.55;
+  color: var(--ink); background: rgba(236, 229, 216, 0.06);
+  border: 1px solid var(--edge); border-radius: 2px; padding: 0.65rem 0.75rem;
+  resize: vertical; min-height: 4.5rem;
+}
+#note-form textarea:focus {
+  outline: none; border-color: rgba(236, 229, 216, 0.42);
+  background: rgba(236, 229, 216, 0.09);
+}
+#note-form .row { display: flex; align-items: center; justify-content: space-between; gap: 0.8rem; }
+#note-count { font-size: 0.68rem; letter-spacing: 0.06em; color: var(--dim); }
+#note-count.over { color: var(--mold); }
+#note-save[disabled] { opacity: 0.45; cursor: default; }
+#notes .close { margin-top: 1.3rem; }
 #reader .sheet { max-width: 44rem; padding: 2.4rem; }
 #reader blockquote {
   margin: 0 0 1.1rem; font-family: var(--serif); font-size: 1.02rem;

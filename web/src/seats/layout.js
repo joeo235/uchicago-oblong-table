@@ -15,8 +15,12 @@ const SET_BACK = 0.62          // clearance from the table edge to a chair
 // so the far side of the table disappears behind it. Sitting up tall.
 const EYE = 1.62
 
-/** The seat the visitor occupies: mid-way along the near long side. */
-export const YOUR_SEAT = 5
+/**
+ * Which seat is yours is a property of the visitor, not of the layout — see
+ * state/identity.js. Re-exported here because everything that needs a seat
+ * already imports from this module.
+ */
+export { yourSeat } from '../state/identity.js'
 
 export function seatLayout() {
   const seats = []
@@ -43,7 +47,7 @@ export function seatLayout() {
     })
   }
 
-  // near long side first, so YOUR_SEAT lands on the side facing the camera
+  // near long side first, so an assigned seat faces across the table
   for (let i = 0; i < SEATS_LONG; i++) {
     const t = (i + 0.5) / SEATS_LONG
     push((t - 0.5) * (TABLE_LEN - 2.2), zLong, 'near')

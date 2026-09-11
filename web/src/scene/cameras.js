@@ -10,7 +10,7 @@ import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 
 import { TABLE_TOP } from '../config.js'
-import { YOUR_SEAT, seatLayout } from '../seats/layout.js'
+import { seatLayout, yourSeat } from '../seats/layout.js'
 
 const TRANSITION = 1.35   // seconds
 
@@ -30,7 +30,7 @@ export class Cameras {
     this.controls.minPolarAngle = Math.PI * 0.08
     this.controls.update()
 
-    const seat = seatLayout()[YOUR_SEAT]
+    const seat = seatLayout()[yourSeat()]
     this.seatEye = seat.eye.clone()
     this.seatLook = seat.lookAt.clone()
 

@@ -17,9 +17,11 @@ import { addLighting } from './scene/lighting.js'
 import { createStage } from './scene/stage.js'
 import { plantTrees } from './scene/trees.js'
 import { Conversation } from './seats/conversation.js'
-import { YOUR_SEAT, neighboursOf, seatLayout } from './seats/layout.js'
+import { neighboursOf, seatLayout, yourSeat } from './seats/layout.js'
 import { Gathering } from './seats/seats.js'
 import { Students } from './seats/students.js'
+import { visitorId } from './state/identity.js'
+import { LocalNotes, bySeat } from './state/notes.js'
 import { loadHistory, saveHistory } from './state/persistence.js'
 import { prng, seedActions } from './state/seed.js'
 import { Overlay } from './ui/overlay.js'
@@ -81,7 +83,7 @@ async function boot() {
 
   const students = new Students({
     field, passage,
-    onArrive: () => { for (const i of [YOUR_SEAT, 4, 18]) gathering.stir(i, 2.4) },
+    onArrive: () => { for (const i of [yourSeat(), 4, 18]) gathering.stir(i, 2.4) },
   })
   scene.add(students.group)
 
@@ -107,14 +109,38 @@ async function boot() {
       yourActions.push(action)
       saveHistory(yourActions)
       overlay.released()
-      const [a, b] = neighboursOf(YOUR_SEAT, seats.length)
-      conversation.speak(YOUR_SEAT, a)
-      conversation.speak(YOUR_SEAT, b)
+      const [a, b] = neighboursOf(yourSeat(), seats.length)
+      conversation.speak(yourSeat(), a)
+      conversation.speak(yourSeat(), b)
       // ...and one of them may answer with a gesture of their own.
       setTimeout(() => gathering.act(Math.random() < 0.5 ? a : b),
         1600 + Math.random() * 2600)
     },
   })
+
+  // ----------------------------------------------------------------- notes
+  // What people leave at their place. The store is an interface: this one
+  // keeps notes in the browser, so they are yours across your own visits and
+  // nobody else's. A shared store needs somewhere hosted and implements the
+  // same two methods.
+  const notes = new LocalNotes()
+  const me = { seat: yourSeat(), id: visitorId() }
+  let noteIndex = new Map()
+
+  const refreshNotes = async () => {
+    noteIndex = bySeat(await notes.list())
+    gathering.setNotes(noteIndex)
+  }
+
+  const openNotes = (seat) => {
+    overlay.showNotes({
+      seat,
+      isYours: seat === me.seat,
+      notes: noteIndex.get(seat) ?? [],
+      visitorId: me.id,
+      shared: notes.shared,
+    })
+  }
 
   const overlay = new Overlay({
     onGesture: (g) => {
@@ -124,9 +150,24 @@ async function boot() {
     },
     onReturn: () => { gestures.putBack(); overlay.released() },
     onToggleView: () => { cameras.toggle(); overlay.setView(!cameras.seated) },
+    onOpenNotes: () => openNotes(me.seat),
+    onNote: async (text) => {
+      const saved = await notes.add({ seat: me.seat, text, visitor: me.id })
+      if (!saved) return
+      await refreshNotes()
+      openNotes(me.seat)
+      // Leaving a note is an act of conversation, so it travels like one.
+      passage.show('neighbour', { force: true })
+      const [a, b] = neighboursOf(me.seat, seats.length)
+      conversation.speak(me.seat, a)
+      conversation.speak(me.seat, b)
+      gathering.stir(me.seat, 2.6)
+    },
   })
 
-  wirePointer({ canvas, cameras, field, gestures, overlay, hint })
+  await refreshNotes()
+
+  wirePointer({ canvas, cameras, field, gestures, overlay, hint, gathering, openNotes, me })
 
   // ------------------------------------------------------------------ loop
   const ambient = prng(1312)
@@ -173,7 +214,9 @@ async function boot() {
   window.__oblong = {
     THREE, scene, renderer, cameras, field, gestures, gathering,
     conversation, students, seats, assets, caps, overlay, passage,
-    yourActions, elapsed: () => elapsed,
+    yourActions, notes, me, openNotes, refreshNotes,
+    noteIndex: () => noteIndex,
+    elapsed: () => elapsed,
   }
 }
 
@@ -193,13 +236,20 @@ function buildChairs(proto, seats) {
   return chairs
 }
 
-/** Hover, take, position, commit. */
-function wirePointer({ canvas, cameras, field, gestures, overlay, hint }) {
+/** Hover, take, position, commit — and read what was left at a place. */
+function wirePointer({ canvas, cameras, field, gestures, overlay, hint, gathering, openNotes, me }) {
   const ray = new THREE.Raycaster()
   const ndc = new THREE.Vector2()
   const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -TABLE_TOP)
   const hitPoint = new THREE.Vector3()
   let hover = null
+  let hoverBook = null
+
+  /** Which place's notebook is under the cursor, if any. */
+  const pickNotebook = (r) => {
+    const hits = r.intersectObject(gathering.paper, false)
+    return hits.length && hits[0].instanceId !== undefined ? hits[0].instanceId : null
+  }
 
   const toNdc = (e) => {
     const r = canvas.getBoundingClientRect()
@@ -218,13 +268,21 @@ function wirePointer({ canvas, cameras, field, gestures, overlay, hint }) {
 
     const hits = ray.intersectObjects(field.meshes, false)
     const next = hits.length ? hits[0].object.userData.item : null
-    if (next !== hover) {
+    const book = next ? null : pickNotebook(ray)
+    if (next !== hover || book !== hoverBook) {
       hover = next
-      canvas.style.cursor = hover ? 'pointer' : 'default'
+      hoverBook = book
+      canvas.style.cursor = (hover || book !== null) ? 'pointer' : 'default'
       hint.set(hover
         ? `${OBJECT_NAMES[hover.archetype]} — ${hover.state === 'aside'
           ? 'set aside' : 'click to pick it up'}`
-        : null)
+        : book !== null
+          ? (book === me.seat
+            ? 'your notebook — click to write'
+            : gathering.hasNotes(book)
+              ? 'a notebook with writing in it — click to read'
+              : 'an empty notebook')
+          : null)
     }
   })
 
@@ -239,12 +297,16 @@ function wirePointer({ canvas, cameras, field, gestures, overlay, hint }) {
     }
     if (gestures.active) return
     const hits = ray.intersectObjects(field.meshes, false)
-    if (!hits.length) return
-    const item = hits[0].object.userData.item
-    if (gestures.take(item)) {
-      overlay.holding(OBJECT_NAMES[item.archetype])
-      hint.set(null)
+    if (hits.length) {
+      const item = hits[0].object.userData.item
+      if (gestures.take(item)) {
+        overlay.holding(OBJECT_NAMES[item.archetype])
+        hint.set(null)
+      }
+      return
     }
+    const book = pickNotebook(ray)
+    if (book !== null) openNotes(book)
   })
 }
 

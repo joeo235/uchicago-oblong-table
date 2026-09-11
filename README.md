@@ -72,6 +72,15 @@ table decide about objects one at a time; periodically a cool pulse crosses the
 lawn from beyond the ring of seats and moves a whole neighbourhood of the
 arrangement at once — a shift nobody seated chose.
 
+**Notes.** Every place at the table has a notebook. You are given one seat,
+the same one each visit, and you can write at it — a question, an insight, a
+concern. Notebooks with writing in them carry a ribbon, and you can read any
+of them. Notes are stored behind a small interface (`src/state/notes.js`) with
+`list` and `add`: the shipped implementation keeps them in your own browser, so
+they persist across your visits and are visible to nobody else. Making them
+visible to other visitors needs somewhere hosted to put them — see
+**Sharing notes** below.
+
 **The objects are uses, not products.** A quiz, a grading rubric, a tutoring
 dialogue, a summariser, a translator, a coding assistant, an image generator, a
 literature search, a data analysis, a set of margin comments. Deliberately not
@@ -132,6 +141,17 @@ easy to reintroduce:
 A third, smaller: window glass at low roughness mirrors the bright sky and
 comes out exactly as bright as the limestone around it, so the facade reads as
 a blank slab. The glazing is deliberately matte and very dark.
+
+## Sharing notes
+
+The note store is deliberately an interface. `LocalNotes` keeps notes in the
+browser; a shared store has to provide the same two methods and somewhere to
+put the data, which a static site on GitHub Pages cannot do by itself.
+
+Anything shared and publicly writable also needs decisions that are not
+technical: whether notes are anonymous, how long they last, who can remove
+one, and what happens when the box is found by someone who is not a colleague.
+Those want answering before the store is swapped, not after.
 
 ## Verify it
 

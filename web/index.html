@@ -34,6 +34,7 @@
   <footer id="controls">
     <button id="view">Take your seat</button>
     <button id="legend-btn">Legend</button>
+    <button id="notes-btn">Notes</button>
     <button id="read">Read the passage</button>
   </footer>
 
@@ -47,6 +48,25 @@
     <p>None outranks another. The table itself never changes shape — the
       topography is the objects, and it keeps shifting on its own.</p>
     <button class="close" data-close="legend">Close</button>
+  </div>
+
+  <div id="notes" hidden>
+    <div class="sheet">
+      <h2 id="notes-title">Notes left at this place</h2>
+      <p id="notes-scope" class="scope"></p>
+      <ul id="notes-list"></ul>
+      <p id="notes-empty" class="empty"></p>
+      <form id="note-form" hidden>
+        <label for="note-text">Leave something for whoever sits here next</label>
+        <textarea id="note-text" maxlength="280" rows="3"
+          placeholder="A question, an insight, a concern&hellip;"></textarea>
+        <div class="row">
+          <span id="note-count">0 / 280</span>
+          <button type="submit" id="note-save">Leave it on the table</button>
+        </div>
+      </form>
+      <button class="close" data-close="notes">Close</button>
+    </div>
   </div>
 
   <div id="reader" hidden>
